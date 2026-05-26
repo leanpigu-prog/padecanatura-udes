@@ -131,17 +131,17 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
     <div class="logo-txt"><strong>Universidad de Santander UDES <span class="fase-badge">Fase 2</span></strong>Formulario de Seguimiento - Plan de Trabajo de Decanatura 2026</div>
   </div>
   <div class="how-box">
-    <div style="font-size:13px;font-weight:700;color:#0C2340;margin-bottom:12px">Como funciona este formulario?</div>
+    <div style="font-size:13px;font-weight:700;color:#0C2340;margin-bottom:12px">¿Cómo funciona este formulario?</div>
     <div class="how-grid">
       <div class="how-card" style="background:#EDF5FF"><div style="font-size:22px;margin-bottom:6px">📥</div><div style="font-size:12px;font-weight:700;color:#0C2340;margin-bottom:3px">1. Cargue su JSON</div><div style="font-size:11px;color:#555;line-height:1.55">El archivo <strong>PlanTrabajo_XXX_2026.json</strong> descargado en la Fase 1.</div></div>
-      <div class="how-card" style="background:#F0FBF4"><div style="font-size:22px;margin-bottom:6px">✏️</div><div style="font-size:12px;font-weight:700;color:#0C2340;margin-bottom:3px">2. Registre avance</div><div style="font-size:11px;color:#555;line-height:1.55">Para cada <strong>actividad</strong> suba el link de evidencia y marque el estado. Sin link no puede completar una accion.</div></div>
-      <div class="how-card" style="background:#FFF8E1"><div style="font-size:22px;margin-bottom:6px">⬇️</div><div style="font-size:12px;font-weight:700;color:#0C2340;margin-bottom:3px">3. Descargue el reporte</div><div style="font-size:11px;color:#555;line-height:1.55">PDF de seguimiento + JSON actualizado para la auditoria (Fase 3).</div></div>
+      <div class="how-card" style="background:#F0FBF4"><div style="font-size:22px;margin-bottom:6px">✏️</div><div style="font-size:12px;font-weight:700;color:#0C2340;margin-bottom:3px">2. Registre avance</div><div style="font-size:11px;color:#555;line-height:1.55">Para cada <strong>actividad</strong> suba el link de evidencia y marque el estado. Sin link no puede completar una acción.</div></div>
+      <div class="how-card" style="background:#FFF8E1"><div style="font-size:22px;margin-bottom:6px">⬇️</div><div style="font-size:12px;font-weight:700;color:#0C2340;margin-bottom:3px">3. Descargue el reporte</div><div style="font-size:11px;color:#555;line-height:1.55">PDF de seguimiento + JSON actualizado para la auditoría (Fase 3).</div></div>
     </div>
   </div>
   <div class="upload-box" id="upload-box" onclick="document.getElementById('file-input').click()">
     <div class="upload-icon">📂</div>
     <div class="upload-title">Cargue su plan de trabajo (JSON)</div>
-    <div class="upload-sub">Haga clic o arrastre el archivo <strong>PlanTrabajo_[FACULTAD]_2026.json</strong><br><span style="font-size:11px;color:#aaa">Generado en el Formulario de Planeacion (Fase 1)</span></div>
+    <div class="upload-sub">Haga clic o arrastre el archivo <strong>PlanTrabajo_[FACULTAD]_2026.json</strong><br><span style="font-size:11px;color:#aaa">Generado en el Formulario de Planeación (Fase 1)</span></div>
     <button class="upload-btn" onclick="event.stopPropagation();document.getElementById('file-input').click()">Seleccionar archivo JSON</button>
     <div class="upload-error" id="upload-error"></div>
   </div>
@@ -195,9 +195,9 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 <script>
 var planData=null;
 var corteActual='Semestre I 2026';
-var dimNames=['Gestion de calidad y autorregulacion','Gestion de la oferta academica y cupos','Gestion academica','Gestion profesoral','Gestion administrativa','Gestion de extension universitaria','Gestion financiera'];
+var dimNames=['Gestión de calidad y autorregulación','Gestión de la oferta académica y cupos','Gestión académica','Gestión profesoral','Gestión administrativa','Gestión de extensión universitaria','Gestión financiera'];
 var dims=['d1','d2','d3','d4','d5','d6','d7'];
-var pilarStyle={'Personalizacion':{bg:'#E6F1FB',tc:'#0C447C'},'Ambiente tecnologico':{bg:'#EAF3DE',tc:'#27500A'},'Entorno emprendedor':{bg:'#FAEEDA',tc:'#633806'},'Gobernanza para el buen gobierno':{bg:'#EEEDFE',tc:'#3C3489'},'Sostenibilidad':{bg:'#E1F5EE',tc:'#085041'},'Apropiacion social':{bg:'#FAECE7',tc:'#4A1B0C'}};
+var pilarStyle={'Personalización':{bg:'#E6F1FB',tc:'#0C447C'},'Ambiente tecnológico':{bg:'#EAF3DE',tc:'#27500A'},'Entorno emprendedor':{bg:'#FAEEDA',tc:'#633806'},'Gobernanza para el buen gobierno':{bg:'#EEEDFE',tc:'#3C3489'},'Sostenibilidad':{bg:'#E1F5EE',tc:'#085041'},'Apropiación social':{bg:'#FAECE7',tc:'#4A1B0C'}};
 var stColor={Pendiente:'#FFB800','En proceso':'#17A2B8',Completado:'#28A745'};
 
 // Drag & drop
@@ -214,12 +214,12 @@ function procesarArchivo(f){
   reader.onload=function(ev){
     try{
       var data=JSON.parse(ev.target.result);
-      if(!data.acciones||!data.facultad){document.getElementById('upload-error').textContent='Archivo invalido. Use el JSON generado en la Fase 1.';return;}
+      if(!data.acciones||!data.facultad){document.getElementById('upload-error').textContent='Archivo inválido. Use el JSON generado en la Fase 1.';return;}
       // Asegurar que cada accion tiene actividades (compatibilidad con JSONs sin actividades)
       data.acciones.forEach(function(a){if(!a.actividades)a.actividades=[];if(!a.seguimientos)a.seguimientos=[];});
       planData=data;
       iniciarApp();
-    }catch(err){document.getElementById('upload-error').textContent='No se pudo leer el archivo. Verifique que sea un JSON valido.';}
+    }catch(err){document.getElementById('upload-error').textContent='No se pudo leer el archivo. Verifique que sea un JSON válido.';}
   };
   reader.readAsText(f);
 }
@@ -273,7 +273,7 @@ function renderDims(){
     var acs=planData.acciones.filter(function(a){return a.dimension===d;});
     var comp=acs.filter(function(a){return getEstadoActual(a)==='Completado';}).length;
     var block=document.createElement('div');block.className='dim-block';
-    block.innerHTML='<div class="dim-hdr" onclick="toggleDim(\'db-'+d+'\',\'ar-'+d+'\')"><div class="dim-num">'+(i+1)+'</div><div class="dim-title">'+dimNames[i]+'</div><div class="dim-badge">'+comp+'/'+acs.length+' completadas</div><div class="dim-arrow" id="ar-'+d+'">▼</div></div><div class="dim-body" id="db-'+d+'">'+(acs.length===0?'<div class="empty-dim">No se registraron acciones en esta dimension.</div>':acs.map(function(a){return renderAcCard(a);}).join(''))+'</div>';
+    block.innerHTML='<div class="dim-hdr" onclick="toggleDim(\'db-'+d+'\',\'ar-'+d+'\')"><div class="dim-num">'+(i+1)+'</div><div class="dim-title">'+dimNames[i]+'</div><div class="dim-badge">'+comp+'/'+acs.length+' completadas</div><div class="dim-arrow" id="ar-'+d+'">▼</div></div><div class="dim-body" id="db-'+d+'">'+(acs.length===0?'<div class="empty-dim">No se registraron acciones en esta dimensión.</div>':acs.map(function(a){return renderAcCard(a);}).join(''))+'</div>';
     container.appendChild(block);
   });
 }
@@ -328,7 +328,7 @@ function renderAcCard(a){
     });
     actsHtml+='</div>';
   } else {
-    actsHtml='<div style="font-size:11px;color:#bbb;font-style:italic;margin-top:6px">Esta accion no tiene actividades registradas. Puede registrar el avance directamente.</div>';
+    actsHtml='<div style="font-size:11px;color:#bbb;font-style:italic;margin-top:6px">Esta acción no tiene actividades registradas. Puede registrar el avance directamente.</div>';
   }
 
   // Historial
@@ -370,7 +370,7 @@ function renderAcCard(a){
     '<span class="pill pill-done'+(estadoAct==='Completado'?' on':'')+'" id="st-'+aid+'-done" onclick="setStatusConValidacion(\''+aid+'\',\'Completado\')">Completado</span>'+
     '</div></div>'+
     '<div class="mf"><label class="fl">Notas del corte</label>'+
-    '<textarea id="notas-'+aid+'" rows="2" placeholder="Evidencias, obstaculos, observaciones del periodo..."></textarea></div>'+
+    '<textarea id="notas-'+aid+'" rows="2" placeholder="Evidencias, obstáculos, observaciones del período..."></textarea></div>'+
     actsHtml+
     '</div>'+
     histHtml+
@@ -535,7 +535,7 @@ function hexToRgb(hex){return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5
 function generarPDF(){
   if(!planData)return;
   guardarCorte();
-  if(typeof window.jspdf==='undefined'){document.getElementById('status-msg').textContent='Cargando libreria PDF...';return;}
+  if(typeof window.jspdf==='undefined'){document.getElementById('status-msg').textContent='Cargando librería PDF...';return;}
   var jsPDF=window.jspdf.jsPDF;
   var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   curY=margin+8;drawHdr(doc);
@@ -570,7 +570,7 @@ function generarPDF(){
       var seg=a.seguimientos||[];var lastSeg=seg[seg.length-1];var estado=getEstadoActual(a);var pct=lastSeg?parseInt(lastSeg.avance||0):0;
       checkPage(doc,26);
       doc.setFillColor(248,251,255);doc.rect(margin,curY,contentW,4,'F');doc.setFillColor(12,35,64);doc.rect(margin,curY,1.5,4,'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(12,35,64);doc.text('Accion '+(j+1),margin+3,curY+3);
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(12,35,64);doc.text('Acción '+(j+1),margin+3,curY+3);
       var sc=hexToRgb(stColor[estado]||'#ccc');doc.setFillColor(sc[0],sc[1],sc[2]);doc.roundedRect(margin+contentW-32,curY+0.5,32,3.5,1.5,1.5,'F');
       doc.setFontSize(6.5);doc.setTextColor(255,255,255);doc.text(estado,margin+contentW-16,curY+3,{align:'center'});curY+=6;
       doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(30,30,30);

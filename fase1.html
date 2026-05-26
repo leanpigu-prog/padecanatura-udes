@@ -109,19 +109,19 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#185FA5;box-sh
   <div class="prog-bar"><div class="prog-fill" id="pf" style="width:10%"></div></div>
 </div>
 <div class="step active" id="s0">
-  <div class="shd"><span class="stag">Paso 1 de 9</span><div class="stit">Seleccione su facultad</div><div class="sdesc">El cuestionario carga automaticamente los puntos criticos de su informe 2025. Al finalizar descargue el <strong>JSON</strong> — ese archivo es el insumo del Formulario de Seguimiento (Fase 2).</div></div>
+  <div class="shd"><span class="stag">Paso 1 de 9</span><div class="stit">Seleccione su facultad</div><div class="sdesc">El cuestionario carga automáticamente los puntos críticos de su informe 2025. Al finalizar descargue el <strong>JSON</strong> — ese archivo es el insumo del Formulario de Seguimiento (Fase 2).</div></div>
   <div class="fac-selector">
     <button class="fac-btn" onclick="selectFac('FCS')" id="fac-FCS"><div class="fac-tag">FCS</div><div class="fac-name">Ciencias Sociales</div><div class="fac-sub">Informe 2025 disponible</div></button>
-    <button class="fac-btn" onclick="selectFac('FIT')" id="fac-FIT"><div class="fac-tag">FIT</div><div class="fac-name">Ingenierias y Tecnologias</div><div class="fac-sub">Informe 2025 disponible</div></button>
-    <button class="fac-btn" onclick="selectFac('FCMS')" id="fac-FCMS"><div class="fac-tag">FCMS</div><div class="fac-name">Ciencias Medicas y de la Salud</div><div class="fac-sub">Informe 2025 disponible</div></button>
+    <button class="fac-btn" onclick="selectFac('FIT')" id="fac-FIT"><div class="fac-tag">FIT</div><div class="fac-name">Ingenierías y Tecnologías</div><div class="fac-sub">Informe 2025 disponible</div></button>
+    <button class="fac-btn" onclick="selectFac('FCMS')" id="fac-FCMS"><div class="fac-tag">FCMS</div><div class="fac-name">Ciencias Médicas y de la Salud</div><div class="fac-sub">Informe 2025 disponible</div></button>
     <button class="fac-btn" onclick="selectFac('FCN')" id="fac-FCN"><div class="fac-tag">FCN</div><div class="fac-name">Ciencias Naturales</div><div class="fac-sub">Informe 2025 disponible</div></button>
     <button class="fac-btn" onclick="selectFac('FCAV')" id="fac-FCAV"><div class="fac-tag">FCAV</div><div class="fac-name">Ciencias Agrícolas y Veterinarias</div><div class="fac-sub">Informe 2025 disponible</div></button>
-    <button class="fac-btn fac-new" onclick="selectFac('FCEAC')" id="fac-FCEAC" style="grid-column:1/-1"><div class="fac-tag">FCEAC</div><div class="fac-name">Ciencias Economicas, Administrativas y Contables</div><div class="fac-sub">Sin informe 2025 - diligencie el plan desde cero</div></button>
+    <button class="fac-btn fac-new" onclick="selectFac('FCEAC')" id="fac-FCEAC" style="grid-column:1/-1"><div class="fac-tag">FCEAC</div><div class="fac-name">Ciencias Económicas, Administrativas y Contables</div><div class="fac-sub">Sin informe 2025 - diligencie el plan desde cero</div></button>
   </div>
   <div class="card" id="fac-id-fields" style="display:none">
     <div class="r2">
       <div><label class="fl">Nombre del Decano(a) *</label><input type="text" id="decano" placeholder="Nombre completo del Decano(a)"></div>
-      <div><label class="fl">Fecha de elaboracion</label><input type="date" id="fecha_elab"></div>
+      <div><label class="fl">Fecha de elaboración</label><input type="date" id="fecha_elab"></div>
     </div>
   </div>
   <div class="nav"><span></span><span class="sc" id="sc0">Seleccione una facultad para continuar</span><button class="nbtn" id="btn-next0" onclick="goTo(1)" style="opacity:.4;pointer-events:none">Siguiente</button></div>
@@ -130,8 +130,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#185FA5;box-sh
 <div class="step" id="s4"></div><div class="step" id="s5"></div><div class="step" id="s6"></div>
 <div class="step" id="s7"></div>
 <div class="step" id="s8">
-  <div class="shd"><span class="stag">Paso 9 - Resumen</span><div class="stit">Revision y descarga del plan</div></div>
-  <div class="json-banner"><strong>Para que sirve el JSON?</strong>El JSON guarda todas sus acciones y actividades. En el Formulario de Seguimiento (Fase 2) cargue ese JSON y encontrara su plan listo para actualizar avances y subir evidencias. <strong>Guardelo en un lugar seguro.</strong></div>
+  <div class="shd"><span class="stag">Paso 9 - Resumen</span><div class="stit">Revisión y descarga del plan</div></div>
+  <div class="json-banner"><strong>¿Para qué sirve el JSON?</strong>El JSON guarda todas sus acciones y actividades. En el Formulario de Seguimiento (Fase 2) cargue ese JSON y encontrara su plan listo para actualizar avances y subir evidencias. <strong>Guárdelo en un lugar seguro.</strong></div>
   <div class="card" id="res_id"></div>
   <div class="sgrid" id="res_grid"></div>
   <div id="res_det"></div>
@@ -141,28 +141,28 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#185FA5;box-sh
     <button class="btn3 btn-txt" onclick="descargarTxt()">Descargar TXT<br><span style="font-size:10px;font-weight:400;opacity:.85">Texto plano</span></button>
   </div>
   <div id="pdf-status"></div>
-  <div class="nav"><button class="bbtn" onclick="goTo(7)">Atras</button><span class="sc">Fase 1 completa - Recuerde descargar el JSON</span><span></span></div>
+  <div class="nav"><button class="bbtn" onclick="goTo(7)">Atrás</button><span class="sc">Fase 1 completa - Recuerde descargar el JSON</span><span></span></div>
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const FACULTADES={
-  FCS:{nombre:'Facultad de Ciencias Sociales',tieneInforme:true,hints:{d1:['Completar acreditacion alta calidad Psicologia multicampus','Avanzar acreditacion alta calidad Derecho multicampus (post visita CAI)','Concluir actualizacion curricular Comunicacion Social multicampus','Ejecutar anualizacion programa de Antropologia','Virtualizar programa de Licenciatura en Primera Infancia'],d2:['Implementar virtualizacion y cuatrimestrizacion de programas','Disenar micro certificaciones al interior de los programas','Desarrollar cursos cortos de alta empleabilidad para poblacion adulta','Fortalecer admisiones en campus Valledupar'],d3:['Fortalecer SABER PRO: razonamiento cuantitativo y competencias escritas','Coordinar plan transversal con pruebas tipo Saber Pro en todos los programas','Incrementar judicaturas pagas en Derecho','Articular cursos con Tirant Lo Blanch'],d4:['Reducir profesores catedra y profesionalizar planta docente','Vincular docentes con doctorado para consolidar ATULAA','Fortalecer programa de bilinguismo institucional'],d5:['Capacitar directores en acompanamiento docente con plazos definidos','Reducir hallazgos en programa de Antropologia','Mantener cumplimiento 100 pct registro de notas','Aumentar satisfaccion Moodle (actualmente 60.6 pct)'],d6:['Diversificar portafolio de extension universitaria','Estructurar proyectos con sector publico y privado','Continuar gestion proyectos extension por mas de 12.000 millones'],d7:['Diversificar fuentes de ingreso mas alla de matriculas','Optimizar planta docente eliminando funciones duplicadas','Avanzar en equilibrio financiero operativo']}},
-  FIT:{nombre:'Facultad de Ingenierias y Tecnologias',tieneInforme:true,hints:{d1:['Consolidar acreditacion alta calidad Ingenieria Civil','Avanzar acreditacion Ing. Industrial Valledupar y Cucuta','Reactivar autoevaluacion Ingenieria de Software (retraso 1 anio)','Radicar especializaciones Calidad del Aire y Tratamiento de Aguas','Preparar Maestria y Doctorado para acreditacion (elegibles fin 2026)'],d2:['Aplicar evaluacion ciclo de vida por programa','Tomar decisiones sobre programas deficitarios Bucaramanga','Ajustar cupos a demanda real por campus','Revitalizar posgrados Cucuta con baja ocupacion'],d3:['Disenar plan para reducir desercion estructural por campus','Implementar acciones para reducir tiempos de grado en Valledupar','Ejecutar plan Saber Pro: Lectura critica y Comunicacion escrita','Replicar buenas practicas valor agregado de Cucuta en otros campus'],d4:['Implementar planeacion docente diferenciada por campus','Reducir dependencia catedra en Valledupar','Ejecutar estrategia institucional de bilinguismo'],d5:['Estandarizar criterios y rubricas de auditoria academica','Capacitar docentes previamente a cada proceso de auditoria','Aumentar uso pedagogico de Moodle (actualmente 62.1 pct)','Alinear resultados de aprendizaje con modelo ABET'],d6:['Estructurar portafolio extension por lineas con metas financieras','Contratar responsable comercial de extension','Recuperar ingresos educacion continua'],d7:['Revisar estructura de costos Ing. Industrial Bucaramanga','Cerrar programas deficitarios en Bucaramanga','Diversificar ingresos Valledupar']}},
-  FCMS:{nombre:'Facultad de Ciencias Medicas y de la Salud',tieneInforme:true,hints:{d1:['Fortalecer autoevaluacion y acreditacion de programas de salud','Actualizar curriculos segun perfiles de egreso y normativa vigente','Gestionar nuevos posgrados en areas prioritarias de salud'],d2:['Analizar sostenibilidad de cupos por programa y campus','Desarrollar estrategias de mercadeo para programas con bajo ingreso','Explorar modalidades virtuales e hibridas para ampliar alcance'],d3:['Fortalecer rutas de retencion y permanencia estudiantil','Mejorar resultados SABER PRO en competencias genericas','Optimizar tiempos de graduacion por programa'],d4:['Incrementar formacion posgradual del cuerpo docente','Fortalecer evaluacion y seguimiento docente','Avanzar en bilinguismo para docentes de la facultad'],d5:['Reducir hallazgos en auditorias academicas por programa','Fortalecer uso pedagogico de Moodle','Garantizar cumplimiento registro de notas y micrositios'],d6:['Fortalecer convenios con sector salud para practicas y extension','Incrementar ingresos por educacion continua especializada','Desarrollar proyectos de impacto social en salud'],d7:['Mejorar viabilidad financiera de programas con baja matricula','Diversificar ingresos con extension y educacion continua','Optimizar estructura de costos operativos de la facultad']}},
-  FCN:{nombre:'Facultad de Ciencias Naturales',tieneInforme:true,hints:{d1:['Avanzar en acreditacion o renovacion de registros calificados','Actualizar curriculos alineados al sector agropecuario y ambiental','Desarrollar nuevos posgrados pertinentes para la region'],d2:['Ajustar oferta academica segun demanda regional por campus','Fortalecer admisiones en campus con menor ocupacion','Explorar modalidades virtuales para ampliar alcance territorial'],d3:['Mejorar resultados Saber Pro por programa','Fortalecer rutas de permanencia y graduacion oportuna','Articular practicas con proyectos de extension e investigacion'],d4:['Incrementar docentes con formacion doctoral en areas estrategicas','Fortalecer semilleros de investigacion','Disenar plan de capacitacion docente en nuevas tecnologias'],d5:['Reducir hallazgos en auditorias academicas','Actualizar micrositios y avanzar en resultados de aprendizaje','Mejorar apropiacion pedagogica de plataformas virtuales'],d6:['Articular proyectos con sector agropecuario y ambiental regional','Incrementar impacto social y desarrollo tecnologico por campus','Gestionar nuevos convenios con sector productivo regional'],d7:['Revisar sostenibilidad programas con baja matricula','Diversificar ingresos con extension y educacion continua','Optimizar asignacion de recursos en programas estrategicos']}},
-  FCAV:{nombre:'Facultad de Ciencias Agrícolas y Veterinarias',tieneInforme:true,hints:{d1:['Avanzar en acreditacion o renovacion de registros calificados','Actualizar curriculos alineados al sector agropecuario y ambiental','Desarrollar nuevos posgrados pertinentes para la region'],d2:['Ajustar oferta academica segun demanda regional por campus','Fortalecer admisiones en campus con menor ocupacion','Explorar modalidades virtuales para ampliar alcance territorial'],d3:['Mejorar resultados Saber Pro por programa','Fortalecer rutas de permanencia y graduacion oportuna','Articular practicas con proyectos de extension e investigacion'],d4:['Incrementar docentes con formacion doctoral en areas estrategicas','Fortalecer semilleros de investigacion','Disenar plan de capacitacion docente en nuevas tecnologias'],d5:['Reducir hallazgos en auditorias academicas','Actualizar micrositios y avanzar en resultados de aprendizaje','Mejorar apropiacion pedagogica de plataformas virtuales'],d6:['Articular proyectos con sector agropecuario y ambiental regional','Incrementar impacto social y desarrollo tecnologico por campus','Gestionar nuevos convenios con sector productivo regional'],d7:['Revisar sostenibilidad programas con baja matricula','Diversificar ingresos con extension y educacion continua','Optimizar asignacion de recursos en programas estrategicos']}},
-  FCEAC:{nombre:'Facultad de Ciencias Economicas, Administrativas y Contables',tieneInforme:false,hints:{d1:[],d2:[],d3:[],d4:[],d5:[],d6:[],d7:[]}}
+  FCS:{nombre:'Facultad de Ciencias Sociales',tieneInforme:true,hints:{d1:['Completar acreditación alta calidad Psicologia multicampus','Avanzar acreditación alta calidad Derecho multicampus (post visita CAI)','Concluir actualización curricular Comunicación Social multicampus','Ejecutar anualización programa de Antropología','Virtualizar programa de Licenciatura en Primera Infancia'],d2:['Implementar virtualización y cuatrimestralización de programas','Diseñar micro certificaciones al interior de los programas','Desarrollar cursos cortos de alta empleabilidad para población adulta','Fortalecer admisiones en campus Valledupar'],d3:['Fortalecer SABER PRO: razonamiento cuantitativo y competencias escritas','Coordinar plan transversal con pruebas tipo Saber Pro en todos los programas','Incrementar judicaturas pagas en Derecho','Articular cursos con Tirant Lo Blanch'],d4:['Reducir profesores cátedra y profesionalizar planta docente','Vincular docentes con doctorado para consolidar ATULAA','Fortalecer programa de bilingüismo institucional'],d5:['Capacitar directores en acompañamiento docente con plazos definidos','Reducir hallazgos en programa de Antropología','Mantener cumplimiento 100 pct registro de notas','Aumentar satisfacción Moodle (actualmente 60.6 pct)'],d6:['Diversificar portafolio de extension universitaria','Estructurar proyectos con sector público y privado','Continuar gestion proyectos extension por más de 12.000 millones'],d7:['Diversificar fuentes de ingreso más allá de matrículas','Optimizar planta docente eliminando funciones duplicadas','Avanzar en equilibrio financiero operativo']}},
+  FIT:{nombre:'Facultad de Ingenierías y Tecnologías',tieneInforme:true,hints:{d1:['Consolidar acreditación alta calidad Ingenieria Civil','Avanzar acreditación Ing. Industrial Valledupar y Cúcuta','Reactivar autoevaluación Ingenieria de Software (retraso 1 año)','Radicar especializaciones Calidad del Aire y Tratamiento de Aguas','Preparar Maestría y Doctorado para acreditación (elegibles fin 2026)'],d2:['Aplicar evaluación ciclo de vida por programa','Tomar decisiones sobre programas deficitarios Bucaramanga','Ajustar cupos a demanda real por campus','Revitalizar posgrados Cúcuta con baja ocupación'],d3:['Diseñar plan para reducir deserción estructural por campus','Implementar acciones para reducir tiempos de grado en Valledupar','Ejecutar plan Saber Pro: Lectura crítica y Comunicación escrita','Replicar buenas prácticas valor agregado de Cúcuta en otros campus'],d4:['Implementar planeación docente diferenciada por campus','Reducir dependencia cátedra en Valledupar','Ejecutar estrategia institucional de bilingüismo'],d5:['Estandarizar criterios y rúbricas de auditoria academica','Capacitar docentes previamente a cada proceso de auditoria','Aumentar uso pedagogico de Moodle (actualmente 62.1 pct)','Alinear resultados de aprendizaje con modelo ABET'],d6:['Estructurar portafolio extension por líneas con metas financieras','Contratar responsable comercial de extension','Recuperar ingresos educación continua'],d7:['Revisar estructura de costos Ing. Industrial Bucaramanga','Cerrar programas deficitarios en Bucaramanga','Diversificar ingresos Valledupar']}},
+  FCMS:{nombre:'Facultad de Ciencias Médicas y de la Salud',tieneInforme:true,hints:{d1:['Fortalecer autoevaluación y acreditación de programas de salud','Actualizar currículos según perfiles de egreso y normativa vigente','Gestionar nuevos posgrados en áreas prioritarias de salud'],d2:['Analizar sostenibilidad de cupos por programa y campus','Desarrollar estrategias de mercadeo para programas con bajo ingreso','Explorar modalidades virtuales e híbridas para ampliar alcance'],d3:['Fortalecer rutas de retención y permanencia estudiantil','Mejorar resultados SABER PRO en competencias genéricas','Optimizar tiempos de graduación por programa'],d4:['Incrementar formación posgradual del cuerpo docente','Fortalecer evaluación y seguimiento docente','Avanzar en bilingüismo para docentes de la facultad'],d5:['Reducir hallazgos en auditorias academicas por programa','Fortalecer uso pedagogico de Moodle','Garantizar cumplimiento registro de notas y micrositios'],d6:['Fortalecer convenios con sector salud para prácticas y extension','Incrementar ingresos por educación continua especializada','Desarrollar proyectos de impacto social en salud'],d7:['Mejorar viabilidad financiera de programas con baja matrícula','Diversificar ingresos con extension y educación continua','Optimizar estructura de costos operativos de la facultad']}},
+  FCN:{nombre:'Facultad de Ciencias Naturales',tieneInforme:true,hints:{d1:['Avanzar en acreditación o renovación de registros calificados','Actualizar currículos alineados al sector agropecuario y ambiental','Desarrollar nuevos posgrados pertinentes para la región'],d2:['Ajustar oferta academica según demanda regional por campus','Fortalecer admisiones en campus con menor ocupación','Explorar modalidades virtuales para ampliar alcance territorial'],d3:['Mejorar resultados Saber Pro por programa','Fortalecer rutas de permanencia y graduación oportuna','Articular prácticas con proyectos de extension e investigación'],d4:['Incrementar docentes con formación doctoral en áreas estrategicas','Fortalecer semilleros de investigación','Diseñar plan de capacitación docente en nuevas tecnologías'],d5:['Reducir hallazgos en auditorias academicas','Actualizar micrositios y avanzar en resultados de aprendizaje','Mejorar apropiación pedagogica de plataformas virtuales'],d6:['Articular proyectos con sector agropecuario y ambiental regional','Incrementar impacto social y desarrollo tecnológico por campus','Gestionar nuevos convenios con sector productivo regional'],d7:['Revisar sostenibilidad programas con baja matrícula','Diversificar ingresos con extension y educación continua','Optimizar asignación de recursos en programas estratégicos']}},
+  FCAV:{nombre:'Facultad de Ciencias Agrícolas y Veterinarias',tieneInforme:true,hints:{d1:['Avanzar en acreditación o renovación de registros calificados','Actualizar currículos alineados al sector agropecuario y ambiental','Desarrollar nuevos posgrados pertinentes para la región'],d2:['Ajustar oferta academica según demanda regional por campus','Fortalecer admisiones en campus con menor ocupación','Explorar modalidades virtuales para ampliar alcance territorial'],d3:['Mejorar resultados Saber Pro por programa','Fortalecer rutas de permanencia y graduación oportuna','Articular prácticas con proyectos de extension e investigación'],d4:['Incrementar docentes con formación doctoral en áreas estrategicas','Fortalecer semilleros de investigación','Diseñar plan de capacitación docente en nuevas tecnologías'],d5:['Reducir hallazgos en auditorias academicas','Actualizar micrositios y avanzar en resultados de aprendizaje','Mejorar apropiación pedagogica de plataformas virtuales'],d6:['Articular proyectos con sector agropecuario y ambiental regional','Incrementar impacto social y desarrollo tecnológico por campus','Gestionar nuevos convenios con sector productivo regional'],d7:['Revisar sostenibilidad programas con baja matrícula','Diversificar ingresos con extension y educación continua','Optimizar asignación de recursos en programas estratégicos']}},
+  FCEAC:{nombre:'Facultad de Ciencias Económicas, Administrativas y Contables',tieneInforme:false,hints:{d1:[],d2:[],d3:[],d4:[],d5:[],d6:[],d7:[]}}
 };
 const dims=['d1','d2','d3','d4','d5','d6','d7'];
-const dimNames=['Gestion de calidad y autorregulacion','Gestion de la oferta academica y cupos','Gestion academica','Gestion profesoral','Gestion administrativa','Gestion de extension universitaria','Gestion financiera'];
-const dimDescs=['Acreditacion, autorregulacion, estado de programas y renovacion de registros calificados.','Cupos, oferta, admisiones, sostenibilidad y tendencias de demanda por campus.','Desercion (SPADIES), SABER PRO, matricula, graduacion y valor agregado de aprendizaje.','Formacion docente, EvalDocente, vinculacion, bilinguismo y profesionalizacion.','Auditorias, resultados de aprendizaje, Moodle, registro de notas y micrositios.','Extension, educacion continua, impacto social, ingresos y beneficiarios.','Viabilidad financiera, punto de equilibrio, sostenibilidad y diversificacion.'];
-const stepLabels=['Seleccion de facultad','Dimension 1','Dimension 2','Dimension 3','Dimension 4','Dimension 5','Dimension 6','Dimension 7','Resumen'];
+const dimNames=['Gestión de calidad y autorregulación','Gestión de la oferta académica y cupos','Gestión académica','Gestión profesoral','Gestión administrativa','Gestión de extensión universitaria','Gestión financiera'];
+const dimDescs=['Acreditacion, autorregulacion, estado de programas y renovación de registros calificados.','Cupos, oferta, admisiones, sostenibilidad y tendencias de demanda por campus.','Desercion (SPADIES), SABER PRO, matrícula, graduación y valor agregado de aprendizaje.','Formacion docente, EvalDocente, vinculacion, bilingüismo y profesionalizacion.','Auditorias, resultados de aprendizaje, Moodle, registro de notas y micrositios.','Extension, educación continua, impacto social, ingresos y beneficiarios.','Viabilidad financiera, punto de equilibrio, sostenibilidad y diversificacion.'];
+const stepLabels=['Selección de facultad','Dimensión 1','Dimensión 2','Dimensión 3','Dimensión 4','Dimensión 5','Dimensión 6','Dimensión 7','Resumen'];
 const cnt={d1:0,d2:0,d3:0,d4:0,d5:0,d6:0,d7:0};
 const actCnt={};
-const pilares=['Personalizacion','Ambiente tecnologico','Entorno emprendedor','Gobernanza para el buen gobierno','Sostenibilidad','Apropiacion social'];
-const pilarStyle={'Personalizacion':{bg:'#E6F1FB',tc:'#0C447C'},'Ambiente tecnologico':{bg:'#EAF3DE',tc:'#27500A'},'Entorno emprendedor':{bg:'#FAEEDA',tc:'#633806'},'Gobernanza para el buen gobierno':{bg:'#EEEDFE',tc:'#3C3489'},'Sostenibilidad':{bg:'#E1F5EE',tc:'#085041'},'Apropiacion social':{bg:'#FAECE7',tc:'#4A1B0C'}};
-const pilarSug={d1:'Gobernanza para el buen gobierno',d2:'Personalizacion',d3:'Personalizacion',d4:'Ambiente tecnologico',d5:'Gobernanza para el buen gobierno',d6:'Apropiacion social',d7:'Sostenibilidad'};
+const pilares=['Personalización','Ambiente tecnológico','Entorno emprendedor','Gobernanza para el buen gobierno','Sostenibilidad','Apropiación social'];
+const pilarStyle={'Personalización':{bg:'#E6F1FB',tc:'#0C447C'},'Ambiente tecnológico':{bg:'#EAF3DE',tc:'#27500A'},'Entorno emprendedor':{bg:'#FAEEDA',tc:'#633806'},'Gobernanza para el buen gobierno':{bg:'#EEEDFE',tc:'#3C3489'},'Sostenibilidad':{bg:'#E1F5EE',tc:'#085041'},'Apropiación social':{bg:'#FAECE7',tc:'#4A1B0C'}};
+const pilarSug={d1:'Gobernanza para el buen gobierno',d2:'Personalización',d3:'Personalización',d4:'Ambiente tecnológico',d5:'Gobernanza para el buen gobierno',d6:'Apropiación social',d7:'Sostenibilidad'};
 const stColor={'Pendiente':'#FFB800','En proceso':'#17A2B8','Completado':'#28A745'};
 let currentFac=null;
 
@@ -186,16 +186,16 @@ function buildDimSteps(){
     const hints=fac.hints[d]||[];
     let topHtml='';
     if(!fac.tieneInforme){
-      topHtml='<div class="no-informe">La facultad no presento informe de gestion 2025. Registre las acciones correctivas a partir de su propio diagnostico.</div>';
+      topHtml='<div class="no-informe">La facultad no presentó informe de gestión 2025. Registre las acciones correctivas a partir de su propio diagnóstico.</div>';
     } else if(hints.length>0){
-      topHtml='<div class="hint-box"><div class="hint-title">Puntos criticos del informe 2025 - clic para agregar como accion</div>'+hints.map((h,hi)=>'<div class="hint-item" id="hint_'+d+'_'+hi+'" onclick="usarHint(\''+d+'\',\''+h.replace(/'/g,"\\'")+'_HINT_'+d+'_'+hi+'\')">'+h+'</div>').join('')+'</div>';
+      topHtml='<div class="hint-box"><div class="hint-title">Puntos críticos del informe 2025 - clic para agregar como acción</div>'+hints.map((h,hi)=>'<div class="hint-item" id="hint_'+d+'_'+hi+'" onclick="usarHint(\''+d+'\',\''+h.replace(/'/g,"\\'")+'_HINT_'+d+'_'+hi+'\')">'+h+'</div>').join('')+'</div>';
     }
-    s.innerHTML='<div class="shd"><span class="stag">Dimension '+(i+1)+' de 7</span><div class="stit">'+dimNames[i]+'</div><div class="sdesc">'+dimDescs[i]+'</div></div>'+topHtml+'<div id="ac_'+d+'"><div class="empty">Sin acciones aun. Use el boton para agregar.</div></div><button class="addbtn" onclick="addAc(\''+d+'\',\'\')">+ Agregar accion correctiva</button><div class="nav"><button class="bbtn" onclick="goTo('+i+')">Atras</button><span class="sc">Paso '+(i+2)+' de 9</span><button class="nbtn" onclick="goTo('+(i+2)+')">Siguiente</button></div>';
+    s.innerHTML='<div class="shd"><span class="stag">Dimensión '+(i+1)+' de 7</span><div class="stit">'+dimNames[i]+'</div><div class="sdesc">'+dimDescs[i]+'</div></div>'+topHtml+'<div id="ac_'+d+'"><div class="empty">Sin acciones aún. Use el botón para agregar.</div></div><button class="addbtn" onclick="addAc(\''+d+'\',\'\')">+ Agregar acción correctiva</button><div class="nav"><button class="bbtn" onclick="goTo('+i+')">Atrás</button><span class="sc">Paso '+(i+2)+' de 9</span><button class="nbtn" onclick="goTo('+(i+2)+')">Siguiente</button></div>';
     // Re-render hints properly
     if(fac.tieneInforme && hints.length>0){
       const hb=s.querySelector('.hint-box');
       if(hb){
-        hb.innerHTML='<div class="hint-title">Puntos criticos del informe 2025 - clic para agregar como accion</div>';
+        hb.innerHTML='<div class="hint-title">Puntos críticos del informe 2025 - clic para agregar como acción</div>';
         hints.forEach((h,hi)=>{
           const el=document.createElement('div');
           el.className='hint-item';
@@ -234,18 +234,18 @@ function addAc(dim,prefill){
   const div=document.createElement('div');
   div.className='ab';div.id=dim+'_b_'+n;
   div.innerHTML=
-    '<div class="anum">Accion '+n+' <button class="dbtn" onclick="delAc(\''+dim+'\','+n+')">eliminar</button></div>'+
-    '<div class="mf"><label class="fl">Descripcion de la accion correctiva *</label><textarea id="'+dim+'_a_'+n+'" rows="2" placeholder="Describa la accion derivada del informe de gestion 2025...">'+( prefill||'')+'</textarea></div>'+
-    '<div class="mf"><label class="fl">Pilar estrategico PDI UDES 2024-2028</label><select id="'+dim+'_p_'+n+'" onchange="updBadge(\''+dim+'\','+n+')">'+pilarOpts(dim)+'</select><div id="'+dim+'_bdg_'+n+'" style="margin-top:5px;min-height:18px"></div></div>'+
-    '<div class="r2" style="margin-bottom:9px"><div><label class="fl">Responsable de la accion</label><input type="text" id="'+dim+'_r_'+n+'" placeholder="Nombre o cargo"></div><div><label class="fl">Fecha limite</label><input type="date" id="'+dim+'_f_'+n+'"></div></div>'+
+    '<div class="anum">Acción '+n+' <button class="dbtn" onclick="delAc(\''+dim+'\','+n+')">eliminar</button></div>'+
+    '<div class="mf"><label class="fl">Descripción de la acción correctiva *</label><textarea id="'+dim+'_a_'+n+'" rows="2" placeholder="Describa la accion derivada del informe de gestión 2025...">'+( prefill||'')+'</textarea></div>'+
+    '<div class="mf"><label class="fl">Pilar estratégico PDI UDES 2024-2028</label><select id="'+dim+'_p_'+n+'" onchange="updBadge(\''+dim+'\','+n+')">'+pilarOpts(dim)+'</select><div id="'+dim+'_bdg_'+n+'" style="margin-top:5px;min-height:18px"></div></div>'+
+    '<div class="r2" style="margin-bottom:9px"><div><label class="fl">Responsable de la acción</label><input type="text" id="'+dim+'_r_'+n+'" placeholder="Nombre o cargo"></div><div><label class="fl">Fecha limite</label><input type="date" id="'+dim+'_f_'+n+'"></div></div>'+
     '<div class="mf"><label class="fl">Recursos necesarios</label><input type="text" id="'+dim+'_rc_'+n+'" placeholder="Ej. Presupuesto, tiempo docentes, software"></div>'+
     '<div class="seg-box"><div class="seg-title">Campos de seguimiento (Fase 2)</div>'+
-    '<div class="mf"><label class="fl">Meta / Indicador de logro <span class="fl-note">como sabremos que se cumplio?</span></label><textarea id="'+dim+'_meta_'+n+'" rows="2" placeholder="Ej: 2 programas acreditados al cierre de 2026"></textarea></div>'+
+    '<div class="mf"><label class="fl">Meta / Indicador de logro <span class="fl-note">¿cómo sabremos que se cumplió?</span></label><textarea id="'+dim+'_meta_'+n+'" rows="2" placeholder="Ej: 2 programas acreditados al cierre de 2026"></textarea></div>'+
     '<label class="fl" style="margin-bottom:5px">Estado inicial</label>'+
     '<div class="pills"><span class="pill pill-pend on" id="'+dim+'_st_'+n+'_pend" onclick="setStatus(\''+dim+'\','+n+',\'Pendiente\')">Pendiente</span><span class="pill pill-prog" id="'+dim+'_st_'+n+'_prog" onclick="setStatus(\''+dim+'\','+n+',\'En proceso\')">En proceso</span><span class="pill pill-done" id="'+dim+'_st_'+n+'_done" onclick="setStatus(\''+dim+'\','+n+',\'Completado\')">Completado</span></div></div>'+
     '<div class="act-section">'+
-    '<div class="act-section-title"><span>Actividades para esta accion</span><span style="font-size:9px;color:#888;font-weight:400">Cada actividad requerira evidencia en Fase 2</span></div>'+
-    '<div class="act-list" id="act_list_'+acId+'"><div class="act-empty" id="act_empty_'+acId+'">Sin actividades. Use el boton para agregar.</div></div>'+
+    '<div class="act-section-title"><span>Actividades para esta acción</span><span style="font-size:9px;color:#888;font-weight:400">Cada actividad requerirá evidencia en Fase 2</span></div>'+
+    '<div class="act-list" id="act_list_'+acId+'"><div class="act-empty" id="act_empty_'+acId+'">Sin actividades. Use el botón para agregar.</div></div>'+
     '<button class="add-act-btn" onclick="addActividad(\''+acId+'\')">+ Agregar actividad</button>'+
     '</div>';
   cont.appendChild(div);
@@ -256,7 +256,7 @@ function delAc(dim,n){
   const el=document.getElementById(dim+'_b_'+n);if(el)el.remove();
   delete actCnt[dim+'_'+n];
   const cont=document.getElementById('ac_'+dim);
-  if(!cont.querySelector('.ab')){const em=document.createElement('div');em.className='empty';em.textContent='Sin acciones aun. Use el boton para agregar.';cont.appendChild(em);}
+  if(!cont.querySelector('.ab')){const em=document.createElement('div');em.className='empty';em.textContent='Sin acciones aún. Use el botón para agregar.';cont.appendChild(em);}
 }
 
 function updBadge(dim,n){
@@ -286,9 +286,9 @@ function addActividad(acId){
   div.className='act-item';div.id='act_'+acId+'_'+m;
   div.innerHTML=
     '<div class="act-item-num">Actividad '+m+' <button class="dbtn" onclick="delActividad(\''+acId+'\','+m+')">eliminar</button></div>'+
-    '<div class="mf"><label class="fl" style="color:#3a6ea5">Descripcion de la actividad *</label><textarea id="act_desc_'+acId+'_'+m+'" rows="2" placeholder="Describa la actividad concreta que se realizara para cumplir esta accion..."></textarea></div>'+
-    '<div class="mf"><label class="fl" style="color:#3a6ea5">Responsable de la actividad</label><input type="text" id="act_resp_'+acId+'_'+m+'" placeholder="Puede ser distinto al responsable de la accion"></div>'+
-    '<div class="mf"><label class="fl" style="color:#3a6ea5">Fecha limite de la actividad</label><input type="date" id="act_fecha_'+acId+'_'+m+'"></div>';
+    '<div class="mf"><label class="fl" style="color:#3a6ea5">Descripción de la actividad *</label><textarea id="act_desc_'+acId+'_'+m+'" rows="2" placeholder="Describa la actividad concreta que se realizará para cumplir esta acción..."></textarea></div>'+
+    '<div class="mf"><label class="fl" style="color:#3a6ea5">Responsable de la actividad</label><input type="text" id="act_resp_'+acId+'_'+m+'" placeholder="Puede ser distinto al responsable de la acción"></div>'+
+    '<div class="mf"><label class="fl" style="color:#3a6ea5">Fecha límite de la actividad</label><input type="date" id="act_fecha_'+acId+'_'+m+'"></div>';
   list.appendChild(div);
 }
 
@@ -372,7 +372,7 @@ function descargarJSON(){
   const bl=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(bl);const a=document.createElement('a');
   a.href=url;a.download='PlanTrabajo_'+currentFac+'_2026.json';a.click();URL.revokeObjectURL(url);
-  document.getElementById('pdf-status').textContent='JSON descargado. Guardelo para usarlo en el Formulario de Seguimiento (Fase 2).';
+  document.getElementById('pdf-status').textContent='JSON descargado. Guárdelo para usarlo en el Formulario de Seguimiento (Fase 2).';
   setTimeout(()=>document.getElementById('pdf-status').textContent='',5000);
 }
 
@@ -384,7 +384,7 @@ function descargarTxt(){
     const ac=getAcs(d);txt+='\nDIM. '+(i+1)+': '+dimNames[i].toUpperCase()+'\n'+('-'.repeat(40))+'\n';
     if(!ac.length){txt+='  Sin acciones registradas.\n';return;}
     ac.forEach((a,j)=>{
-      txt+='\n  Accion '+(j+1)+': '+a.accion+'\n  Pilar PDI: '+a.pilar+'\n  Responsable: '+a.responsable+'\n  Fecha: '+a.fechaLimite+'\n  Meta: '+a.meta+'\n  Estado inicial: '+a.estadoInicial+'\n';
+      txt+='\n  Acción '+(j+1)+': '+a.accion+'\n  Pilar PDI: '+a.pilar+'\n  Responsable: '+a.responsable+'\n  Fecha: '+a.fechaLimite+'\n  Meta: '+a.meta+'\n  Estado inicial: '+a.estadoInicial+'\n';
       if(a.actividades.length){txt+='  Actividades:\n';a.actividades.forEach((act,ai)=>{txt+='    '+(ai+1)+'. '+act.descripcion+' (Resp: '+act.responsable+(act.fecha?' | Fecha: '+act.fecha:'')+')\n';});}
     });
   });
@@ -409,7 +409,7 @@ function generarPDF(){
   doc.setFillColor(232,243,252);doc.rect(margin,curY,contentW,26,'F');
   doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(12,35,64);doc.text('PLAN DE TRABAJO ANUAL - DECANATURA 2026',margin+3,curY+8);
   doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(70,70,70);
-  doc.text('Acciones correctivas y actividades - PDI UDES 2024-2028 - Fase 1: Planeacion',margin+3,curY+15);
+  doc.text('Acciones correctivas y actividades - PDI UDES 2024-2028 - Fase 1: Planeación',margin+3,curY+15);
   doc.text('Este plan es la linea base para el seguimiento y auditoria (Fases 2 y 3)',margin+3,curY+22);curY+=30;
   doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(24,95,165);doc.text('IDENTIFICACION',margin,curY);curY+=4;
   doc.setDrawColor(24,95,165);doc.line(margin,curY,margin+contentW,curY);curY+=4;
@@ -423,7 +423,7 @@ function generarPDF(){
     acs.forEach(function(a,j){
       checkPage(doc,28);
       doc.setFillColor(248,251,255);doc.rect(margin,curY,contentW,4,'F');doc.setFillColor(24,95,165);doc.rect(margin,curY,1.5,4,'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(24,95,165);doc.text('Accion '+(j+1),margin+3,curY+3);
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(24,95,165);doc.text('Acción '+(j+1),margin+3,curY+3);
       var sc=scMap[a.estadoInicial]||[200,200,200];doc.setFillColor(sc[0],sc[1],sc[2]);doc.roundedRect(margin+contentW-32,curY+0.5,32,3.5,1.5,1.5,'F');
       doc.setFontSize(6.5);doc.setTextColor(255,255,255);doc.text(a.estadoInicial,margin+contentW-16,curY+3,{align:'center'});curY+=6;
       doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(30,30,30);
@@ -455,7 +455,7 @@ function generarPDF(){
   doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(30,30,30);
   doc.text('Firma: ___________________________________',margin,curY);curY+=8;doc.text('Nombre: ___________________________________',margin,curY);curY+=8;doc.text('Fecha: ___________________________________',margin,curY);
   var total=doc.getNumberOfPages();
-  for(var p=1;p<=total;p++){doc.setPage(p);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,160,160);doc.text('Pag. '+p+'/'+total+' - Vicerrectoria Academica y de Formacion - UDES - Fase 1: Planeacion',margin,pageH-5);}
+  for(var p=1;p<=total;p++){doc.setPage(p);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,160,160);doc.text('Pag. '+p+'/'+total+' - Vicerrectoria Academica y de Formacion - UDES - Fase 1: Planeación',margin,pageH-5);}
   doc.save('PlanTrabajo_'+currentFac+'_2026.pdf');
   document.getElementById('pdf-status').textContent='PDF descargado. Recuerde tambien guardar el JSON para el seguimiento.';
   setTimeout(function(){document.getElementById('pdf-status').textContent='';},5000);
