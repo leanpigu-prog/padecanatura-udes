@@ -458,7 +458,7 @@ function drawHdrPDF(doc) {
   doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
   doc.text('Informe de Auditoría - Plan de Trabajo 2026', pageW-margin, 10, {align:'right'});
   doc.setFontSize(6.5); doc.setFont('helvetica','normal'); doc.setTextColor(138,175,212);
-  doc.text('Planeación institucional - UDES', pageW-margin, 15, {align:'right'});
+  doc.text('Planeación Institucional - UDES', pageW-margin, 15, {align:'right'});
   doc.setTextColor(30,30,30);
 }
 var _pdfRetries=0;
@@ -581,7 +581,7 @@ function generarPDF() {
   for (var p=1; p<=total; p++) {
     doc.setPage(p);
     doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
-    doc.text('Pág. '+p+'/'+total+' — Planeación institucional - UDES · Auditoría Plan de Trabajo 2026', pageW-margin, pageH-4, {align:'right'});
+    doc.text('Pág. '+p+'/'+total+' — Planeación Institucional - UDES · Auditoría Plan de Trabajo 2026', pageW-margin, pageH-4, {align:'right'});
   }
 
   doc.save('Auditoria_'+(planData.facultad.codigo||'FAC')+'_'+new Date().toISOString().slice(0,10)+'.pdf');
