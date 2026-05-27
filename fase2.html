@@ -78,8 +78,6 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 @media(max-width:560px){.r2,.how-grid{grid-template-columns:1fr}}
 /* Slider progreso */
 .pct-wrap{display:flex;align-items:center;gap:10px}
-.pct-bar{flex:1;height:8px;background:#e0e7ef;border-radius:8px;overflow:hidden}
-.pct-fill{height:100%;border-radius:8px;background:#28A745;transition:width .3s}
 .pct-num{font-size:13px;font-weight:700;color:#0C2340;min-width:36px;text-align:right}
 /* Pastillas estado */
 .pills{display:flex;gap:7px;flex-wrap:wrap;margin-top:5px}
@@ -360,7 +358,6 @@ function renderAcCard(a){
     '<input type="range" min="0" max="100" step="5" value="'+lastPct+'" id="pct-'+aid+'" style="flex:1" oninput="updPct(\''+aid+'\')" onchange="validarPct(\''+aid+'\')">'+
     '<div class="pct-num" id="pct-num-'+aid+'">'+lastPct+'%</div>'+
     '</div>'+
-    '<div class="pct-bar" style="margin-top:6px"><div class="pct-fill" id="pct-fill-'+aid+'" style="width:'+lastPct+'%"></div></div>'+
     '<div class="bloqueo-msg" id="bloqueo-'+aid+'">Para marcar al 100% o como Completado, todas las actividades deben tener link de evidencia.</div>'+
     '</div>'+
     '<div class="mf"><label class="fl">Estado actual de la accion</label>'+
@@ -404,7 +401,6 @@ function todasActividadesConLink(aid){
 function updPct(aid){
   var v=document.getElementById('pct-'+aid).value;
   document.getElementById('pct-num-'+aid).textContent=v+'%';
-  document.getElementById('pct-fill-'+aid).style.width=v+'%';
 }
 
 function validarPct(aid){
@@ -413,7 +409,6 @@ function validarPct(aid){
   if(parseInt(slider.value)===100&&!todasActividadesConLink(aid)){
     slider.value=95;
     document.getElementById('pct-num-'+aid).textContent='95%';
-    document.getElementById('pct-fill-'+aid).style.width='95%';
     if(bloq)bloq.style.display='block';
     // Marcar campos sin link
     var accion=planData.acciones.find(function(a){return a.id===aid;});
