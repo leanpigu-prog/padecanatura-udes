@@ -179,20 +179,38 @@ function getAud() {
   };
 }
 
+function calcAuditPct(a, seg) {
+  var acts = a.actividades || [];
+  if (acts.length) {
+    var aceptadas = acts.filter(function(act) {
+      var as = (seg&&seg.actividades||[]).find(function(s){return s.id===act.id;});
+      return as && as.auditoria && as.auditoria.veredicto === 'Aceptado';
+    }).length;
+    return Math.round((aceptadas/acts.length)*100);
+  }
+  var audA = seg && seg.auditoriaAccion;
+  return (audA && audA.veredicto === 'Aceptado') ? 100 : 0;
+}
+
 function calcSem(acs) {
   if (!acs || !acs.length) return {cls:'sg', emoji:'⚫', pct:0, label:'Sin acciones'};
   var ok = acs.every(function(a) {
     var seg = getLastSeg(a);
     if (!seg || parseInt(seg.avance||0) < 100) return false;
     var acts = a.actividades || [];
-    if (!acts.length) return true;
+    if (!acts.length) return seg.auditoriaAccion && seg.auditoriaAccion.veredicto === 'Aceptado';
     return acts.every(function(act) {
       var as = (seg.actividades||[]).find(function(s){return s.id===act.id;});
       return as && as.auditoria && as.auditoria.veredicto === 'Aceptado';
     });
   });
   if (ok) return {cls:'sv', emoji:'🟢', pct:100, label:'Cumplimiento total verificado'};
-  var sum = acs.reduce(function(t,a){ var s=getLastSeg(a); return t+(s?parseInt(s.avance||0):0); }, 0);
+  var sum = acs.reduce(function(t,a){
+    var s = getLastSeg(a);
+    var avance = s ? parseInt(s.avance||0) : 0;
+    var auditPct = calcAuditPct(a, s);
+    return t + Math.round((avance+auditPct)/2);
+  }, 0);
   var pct = Math.round(sum/acs.length);
   if (pct>=70) return {cls:'sa', emoji:'🟡', pct:pct, label:'Avance parcial - requiere atención'};
   if (pct>=40) return {cls:'sn', emoji:'🟠', pct:pct, label:'Avance bajo - en riesgo'};
@@ -345,7 +363,61 @@ function renderAcciones(dk, acs, body) {
     } else if (!seg) {
       div.innerHTML += '<div style="font-size:11px;color:#e53e3e;margin-top:6px">Sin seguimiento registrado por el decano.</div>';
     } else {
-      div.innerHTML += '<div style="font-size:11px;color:#bbb;font-style:italic;margin-top:6px">Sin actividades definidas.</div>';
+      var audA = seg.auditoriaAccion || {};
+      var verA = audA.veredicto || 'Pendiente';
+      var linkA = seg.linkEvidenciaAccion || '';
+
+      var aDiv2 = document.createElement('div');
+      aDiv2.className = 'act-item';
+      aDiv2.innerHTML =
+        '<div class="act-desc" style="font-style:italic;color:#888">Esta acción no tiene actividades registradas — evidencia a nivel de acción</div>'+
+        '<div class="act-link">'+(linkA?'<a href="'+linkA+'" target="_blank" rel="noopener"><strong>Evidencia:</strong> '+linkA.substring(0,50)+(linkA.length>50?'...':'')+' ↗</a>':'<span class="no-link">⚠ Sin link de evidencia</span>')+'</div>'+
+        '<div class="vrow">'+
+          '<button class="vbtn vbtn-ace'+(verA==='Aceptado'?' on':'')+'" data-ver="Aceptado">✔ Aceptar</button>'+
+          '<button class="vbtn vbtn-rec'+(verA==='Rechazado'?' on':'')+'" data-ver="Rechazado">✖ Rechazar</button>'+
+          '<button class="vbtn vbtn-pen'+(verA==='Pendiente'?' on':'')+'" data-ver="Pendiente">⏳ Pendiente</button>'+
+        '</div>'+
+        '<div class="act-comment"><textarea id="com-acc-'+a.id+'" rows="2" placeholder="Comentario del auditor (requerido si rechaza)...">'+(audA.comentario||'')+'</textarea></div>'+
+        '<button class="btn-confirm">✔ Confirmar y guardar</button>';
+
+      aDiv2.querySelectorAll('.vbtn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          aDiv2.querySelectorAll('.vbtn').forEach(function(b){ b.classList.remove('on'); });
+          btn.classList.add('on');
+          var cfm = aDiv2.querySelector('.btn-confirm');
+          cfm.style.background = '#d4700a';
+          cfm.textContent = '⚠ Confirmar cambio pendiente';
+        });
+      });
+
+      aDiv2.querySelector('.btn-confirm').addEventListener('click', function() {
+        var cfm = this;
+        var ver2 = 'Pendiente';
+        aDiv2.querySelectorAll('.vbtn').forEach(function(b){
+          if (b.classList.contains('on')) ver2 = b.dataset.ver;
+        });
+        var com = document.getElementById('com-acc-'+a.id);
+        var aud3 = getAud();
+        seg.auditoriaAccion = {
+          veredicto: ver2,
+          comentario: com ? com.value.trim() : '',
+          auditor: aud3.nombre,
+          cargo: aud3.cargo,
+          fechaAuditoria: aud3.fecha
+        };
+        var vc = {Aceptado:'#28a745',Rechazado:'#e53e3e',Pendiente:'#b7850a'};
+        cfm.style.background = vc[ver2]||'#185FA5';
+        cfm.textContent = '✔ Guardado — ' + ver2;
+        aDiv2.style.borderLeftColor = vc[ver2]||'#b0c4de';
+        setTimeout(function(){
+          cfm.style.background = '';
+          cfm.textContent = '✔ Confirmar y guardar';
+        }, 2500);
+        recalcular();
+        setStatus('Acción confirmada: ' + ver2);
+      });
+
+      div.appendChild(aDiv2);
     }
     body.appendChild(div);
   });
@@ -413,6 +485,27 @@ function guardarTodo() {
         };
       }
     });
+    if (!(a.actividades||[]).length) {
+      var comAcc = document.querySelector('[id="com-acc-'+a.id+'"]');
+      if (comAcc) {
+        var verAcc = 'Pendiente';
+        var parentAcc = comAcc.closest ? comAcc.closest('.act-item') : null;
+        if (parentAcc) {
+          parentAcc.querySelectorAll('.vbtn').forEach(function(b){
+            if (b.classList.contains('on')) verAcc = b.dataset.ver;
+          });
+        }
+        if (!seg.auditoriaAccion || seg.auditoriaAccion.veredicto !== verAcc || seg.auditoriaAccion.comentario !== comAcc.value.trim()) {
+          seg.auditoriaAccion = {
+            veredicto: verAcc,
+            comentario: comAcc.value.trim(),
+            auditor: aud.nombre,
+            cargo: aud.cargo,
+            fechaAuditoria: aud.fecha
+          };
+        }
+      }
+    }
   });
   planData.auditoria = {auditor:aud.nombre, cargo:aud.cargo, fecha:aud.fecha, exportado:new Date().toISOString()};
 }
@@ -536,7 +629,7 @@ function generarPDF() {
         var vc = {Aceptado:[40,167,69], Rechazado:[229,62,62], Pendiente:[180,130,10]};
         var ac = vc[ver]||[150,150,150];
 
-        checkPage(doc, com?16:12);
+        checkPage(doc, com?20:16);
         doc.setFillColor(ac[0],ac[1],ac[2]); doc.rect(margin+4,curY,3,8,'F');
         doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30);
         doc.text(act.descripcion.substring(0,72), margin+9, curY+3.5);
@@ -545,8 +638,8 @@ function generarPDF() {
         doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(ac[0],ac[1],ac[2]);
         doc.text('['+ver+']', margin+9, curY+11);
         doc.setTextColor(100,100,100); doc.setFont('helvetica','normal'); doc.setFontSize(6);
-        doc.text('Link: '+link.substring(0,58), margin+24, curY+11);
-        curY += 13;
+        doc.text('Link: '+link.substring(0,58), margin+9, curY+15);
+        curY += 17;
         if (com) {
           checkPage(doc, 6);
           doc.setTextColor(80,80,80); doc.setFontSize(6);

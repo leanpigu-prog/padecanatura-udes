@@ -191,7 +191,7 @@ function buildDimSteps(){
     } else if(hints.length>0){
       topHtml='<div class="hint-box"><div class="hint-title">Puntos críticos del informe 2025 - clic para agregar como acción</div>'+hints.map((h,hi)=>'<div class="hint-item" id="hint_'+d+'_'+hi+'" onclick="usarHint(\''+d+'\',\''+h.replace(/'/g,"\\'")+'_HINT_'+d+'_'+hi+'\')">'+h+'</div>').join('')+'</div>';
     }
-    s.innerHTML='<div class="shd"><span class="stag">Dimensión '+(i+1)+' de 7</span><div class="stit">'+dimNames[i]+'</div><div class="sdesc">'+dimDescs[i]+'</div></div>'+topHtml+'<div id="ac_'+d+'"><div class="empty">Sin acciones aún. Use el botón para agregar.</div></div><button class="addbtn" onclick="addAc(\''+d+'\',\'\')">+ Agregar acción correctiva</button><div class="nav"><button class="bbtn" onclick="goTo('+i+')">Atrás</button><span class="sc">Paso '+(i+2)+' de 9</span><button class="nbtn" onclick="goTo('+(i+2)+')">Siguiente</button></div>';
+    s.innerHTML='<div class="shd"><span class="stag">Dimensión '+(i+1)+' de 7</span><div class="stit">'+dimNames[i]+'</div><div class="sdesc">'+dimDescs[i]+'</div></div>'+topHtml+'<div id="ac_'+d+'"><div class="empty">Sin acciones aún. Use el botón para agregar.</div></div><button class="addbtn" onclick="addAc(\''+d+'\',\'\')">+ Agregar acción</button><div class="nav"><button class="bbtn" onclick="goTo('+i+')">Atrás</button><span class="sc">Paso '+(i+2)+' de 9</span><button class="nbtn" onclick="goTo('+(i+2)+')">Siguiente</button></div>';
     // Re-render hints properly
     if(fac.tieneInforme && hints.length>0){
       const hb=s.querySelector('.hint-box');
@@ -238,7 +238,7 @@ function addAc(dim,prefill){
   div.className='ab';div.id=dim+'_b_'+n;
   div.innerHTML=
     '<div class="anum">Acción '+n+' <button class="dbtn" onclick="delAc(\''+dim+'\','+n+')">eliminar</button></div>'+
-    '<div class="mf"><label class="fl">Descripción de la acción correctiva *</label><textarea id="'+dim+'_a_'+n+'" rows="2" placeholder="Describa la accion derivada del informe de gestión 2025...">'+ptxt+'</textarea></div>'+
+    '<div class="mf"><label class="fl">Descripción de la acción *</label><textarea id="'+dim+'_a_'+n+'" rows="2" placeholder="Describa la accion derivada del informe de gestión 2025...">'+ptxt+'</textarea></div>'+
     '<div class="mf"><label class="fl">Pilar estratégico PDI UDES 2024-2028</label><select id="'+dim+'_p_'+n+'" onchange="updBadge(\''+dim+'\','+n+')">'+pilarOpts(dim)+'</select><div id="'+dim+'_bdg_'+n+'" style="margin-top:5px;min-height:18px"></div></div>'+
     '<div class="mf"><label class="fl">Fuente presupuestal</label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><button type="button" id="'+dim+'_bpo_'+n+'" class="pres-btn" onclick="togglePres(this)">Presupuesto Ordinario</button><button type="button" id="'+dim+'_bpm_'+n+'" class="pres-btn" onclick="togglePres(this)">Presupuesto Plan de Mejoramiento y Consolidación</button></div></div>'+
     '<div class="r2" style="margin-bottom:9px"><div><label class="fl">Responsable de la acción</label><input type="text" id="'+dim+'_r_'+n+'" placeholder="Nombre o cargo"></div><div><label class="fl">Fecha limite</label><input type="date" id="'+dim+'_f_'+n+'"></div></div>'+
