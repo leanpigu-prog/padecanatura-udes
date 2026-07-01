@@ -8,12 +8,6 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,-apple-system,sans-serif;background:#f0f4f8;color:#1a1a2e;min-height:100vh;padding:2rem 1rem}
 .wrap{max-width:860px;margin:0 auto}
-.logo-bar{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem}
-.logo-dot{width:36px;height:36px;background:#0C2340;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.logo-dot span{color:#fff;font-weight:800;font-size:14px}
-.logo-txt{font-size:12px;color:#666;line-height:1.4}
-.logo-txt strong{display:block;color:#0C2340;font-size:13px;font-weight:700}
-.fase-badge{display:inline-block;background:#28A745;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.06em;margin-left:6px}
 /* Upload */
 .upload-box{border:2px dashed #b0ccee;border-radius:16px;padding:3rem 2rem;text-align:center;cursor:pointer;transition:all .2s;background:#f8fbff}
 .upload-box:hover,.upload-box.drag{border-color:#185FA5;background:#EDF5FF}
@@ -120,14 +114,12 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" style="display:none">
+
+<div id="udes-header-mount"></div>
 
 <!-- PANTALLA CARGA -->
 <div id="upload-screen">
-  <div class="logo-bar">
-    <div class="logo-dot"><span>U</span></div>
-    <div class="logo-txt"><strong>Universidad de Santander UDES <span class="fase-badge">Fase 2</span></strong>Formulario de Seguimiento - Plan de Trabajo de Decanatura 2026</div>
-  </div>
   <div class="how-box">
     <div style="font-size:13px;font-weight:700;color:#0C2340;margin-bottom:12px">¿Cómo funciona este formulario?</div>
     <div class="how-grid">
@@ -148,10 +140,6 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 
 <!-- APP PRINCIPAL -->
 <div class="main-app" id="main-app">
-  <div class="logo-bar">
-    <div class="logo-dot"><span>U</span></div>
-    <div class="logo-txt"><strong>Universidad de Santander UDES <span class="fase-badge">Fase 2</span></strong>Formulario de Seguimiento - Plan de Trabajo de Decanatura 2026</div>
-  </div>
   <div class="top-bar">
     <div>
       <div class="tb-fac" id="tb-fac">-</div>
@@ -190,7 +178,10 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="udes-branding.js"></script>
+<script src="padeca-auth.js"></script>
 <script>
+UdesHeader.render('#udes-header-mount',{subtitulo:'Formulario de Seguimiento - Plan de Trabajo de Decanatura 2026',badge:'Fase 2 · Seguimiento'});
 var planData=null;
 var corteActual='Semestre I 2026';
 var dimNames=['Gestión de calidad y autorregulación','Gestión de la oferta académica y cupos','Gestión académica','Gestión profesoral','Gestión administrativa','Gestión de extensión universitaria','Gestión financiera'];
@@ -482,7 +473,7 @@ function getActEstadoForm(actId){
   return'Pendiente';
 }
 
-function guardarCorte(){
+function capturarSeguimientoSilencioso(){
   var fechaCorte=document.getElementById('corte-fecha').value||new Date().toISOString().slice(0,10);
   planData.acciones.forEach(function(a){
     var aid=a.id;
@@ -499,6 +490,10 @@ function guardarCorte(){
     if(idx>=0)a.seguimientos[idx]=entry;else a.seguimientos.push(entry);
   });
   planData.ultimoSeguimiento={corte:corteActual,fecha:fechaCorte};
+}
+
+function guardarCorte(){
+  capturarSeguimientoSilencioso();
   renderDashboard();
   renderDims();
   document.getElementById('status-msg').textContent='Corte guardado correctamente. Descargue el PDF o JSON para conservar el registro.';
@@ -609,6 +604,54 @@ function generarPDF(){
   document.getElementById('status-msg').textContent='PDF de seguimiento descargado correctamente.';
   setTimeout(function(){document.getElementById('status-msg').textContent='';},4000);
 }
+
+// ─── Persistencia en línea (Google Sheets) ─────────────────────
+function mostrarMensajeSinDatos(fac){
+  document.getElementById('upload-error').textContent='Aún no hay un Plan de Fase 1 guardado en línea para la facultad '+fac+'. Puede cargar un archivo JSON manualmente abajo como respaldo.';
+}
+
+function mostrarSelectorAdminFase2(){
+  if(document.getElementById('admin-fac-bar'))return;
+  var bar=document.createElement('div');
+  bar.id='admin-fac-bar';
+  bar.style.cssText='background:#fff;border:1px solid #e2e9f2;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;flex-direction:column;gap:8px';
+  bar.innerHTML='<div style="font-size:11px;color:#777;line-height:1.5">Seleccione la facultad y presione <strong>Cargar</strong> para traer el plan de Fase 1 y los seguimientos de Fase 2 que esa decanatura ya guardó en línea con su propio usuario. Si aún no ha guardado nada, no habrá datos para mostrar.</div>'+
+    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+
+    '<label style="font-size:12px;font-weight:700;color:#555">Facultad a cargar:</label>'+
+    '<select id="admin-fac-sel"><option value="">Seleccione...</option>'+
+    ['FCS','FIT','FCMS','FCN','FCAV','FCEAC','CFTT'].map(function(f){return '<option value="'+f+'">'+f+'</option>';}).join('')+
+    '</select><button class="upload-btn" style="margin-top:0" onclick="cargarPlanDeSheets(document.getElementById(\'admin-fac-sel\').value)">Cargar</button>'+
+    '</div>';
+  document.getElementById('upload-screen').prepend(bar);
+}
+
+function cargarPlanDeSheets(fac){
+  if(!fac){mostrarSelectorAdminFase2();return;}
+  document.getElementById('upload-error').textContent='Buscando plan guardado para '+fac+'...';
+  cargarDeSheets(fac).then(function(row){
+    if(!row||!row.json_data){mostrarMensajeSinDatos(fac);return;}
+    try{
+      var data=JSON.parse(row.json_data);
+      data.acciones.forEach(function(a){if(!a.actividades)a.actividades=[];if(!a.seguimientos)a.seguimientos=[];});
+      planData=data;
+      iniciarApp();
+    }catch(e){mostrarMensajeSinDatos(fac);}
+  });
+}
+
+function guardarBorradorFase2(){
+  if(!planData)return;
+  capturarSeguimientoSilencioso();
+  guardarEnSheets(planData.facultad.codigo,'fase2',planData.decano,planData);
+}
+document.getElementById('main-app').addEventListener('input',guardarBorradorFase2);
+document.getElementById('main-app').addEventListener('change',guardarBorradorFase2);
+document.getElementById('main-app').addEventListener('click',function(){setTimeout(guardarBorradorFase2,0);});
+
+PadecaAuth.init({allowedRoles:['decano','admin']},function(s){
+  document.querySelector('.wrap').style.display='block';
+  cargarPlanDeSheets(facultadDeSesion());
+});
 </script>
 </body>
 </html>

@@ -8,13 +8,6 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh;padding:2rem 1rem}
 .wrap{max-width:820px;margin:0 auto}
-.inst-header{background:#0C2340;border-radius:10px;padding:14px 18px;margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:3px solid #C9A227}
-.inst-left{display:flex;align-items:center;gap:12px}
-.inst-logo{background:#C9A227;color:#0C2340;font-weight:900;font-size:14px;padding:6px 10px;border-radius:6px;letter-spacing:.08em}
-.inst-info{display:flex;flex-direction:column}
-.inst-info strong{color:#fff;font-size:13px;font-weight:700}
-.inst-info span{color:#8aafd4;font-size:11px;margin-top:2px}
-.inst-badge{background:rgba(201,162,39,.15);color:#C9A227;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid #C9A227;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}
 .prog-labels{display:flex;justify-content:space-between;font-size:11px;color:#0C2340;font-weight:600;margin-bottom:5px}
 .prog-bar{background:#dde6f0;border-radius:999px;height:7px;overflow:hidden}
 .prog-fill{height:100%;background:#0C2340;border-radius:999px;transition:width .4s ease}
@@ -98,17 +91,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#185FA5;box-sh
 </style>
 </head>
 <body>
-<div class="wrap">
-<div class="inst-header">
-  <div class="inst-left">
-    <div class="inst-logo">UDES</div>
-    <div class="inst-info">
-      <strong>Universidad de Santander</strong>
-      <span>Plan de Trabajo Anual de Decanatura · Acciones correctivas 2026</span>
-    </div>
-  </div>
-  <div class="inst-badge">Fase 1 · Planeación</div>
-</div>
+<div class="wrap" style="display:none">
+<div id="udes-header-mount"></div>
 <div style="margin-bottom:1.25rem">
   <div class="prog-labels"><span id="psl">Seleccion de facultad</span><span id="ppct">10%</span></div>
   <div class="prog-bar"><div class="prog-fill" id="pf" style="width:10%"></div></div>
@@ -156,7 +140,10 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#185FA5;box-sh
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="udes-branding.js"></script>
+<script src="padeca-auth.js"></script>
 <script>
+UdesHeader.render('#udes-header-mount',{subtitulo:'Plan de Trabajo Anual de Decanatura · Acciones correctivas 2026',badge:'Fase 1 · Planeación'});
 const FACULTADES={
   FCS:{nombre:'Facultad de Ciencias Sociales',tieneInforme:true,hints:{d1:['Completar acreditación alta calidad Psicologia multicampus','Avanzar acreditación alta calidad Derecho multicampus (post visita CAI)','Concluir actualización curricular Comunicación Social multicampus','Ejecutar anualización programa de Antropología','Virtualizar programa de Licenciatura en Primera Infancia'],d2:['Implementar virtualización y cuatrimestralización de programas','Diseñar micro certificaciones al interior de los programas','Desarrollar cursos cortos de alta empleabilidad para población adulta','Fortalecer admisiones en campus Valledupar'],d3:['Fortalecer SABER PRO: razonamiento cuantitativo y competencias escritas','Coordinar plan transversal con pruebas tipo Saber Pro en todos los programas','Incrementar judicaturas pagas en Derecho','Articular cursos con Tirant Lo Blanch'],d4:['Reducir profesores cátedra y profesionalizar planta docente','Vincular docentes con doctorado para consolidar ATULAA','Fortalecer programa de bilingüismo institucional'],d5:['Capacitar directores en acompañamiento docente con plazos definidos','Reducir hallazgos en programa de Antropología','Mantener cumplimiento 100 pct registro de notas','Aumentar satisfacción Moodle (actualmente 60.6 pct)'],d6:['Diversificar portafolio de extension universitaria','Estructurar proyectos con sector público y privado','Continuar gestion proyectos extension por más de 12.000 millones'],d7:['Diversificar fuentes de ingreso más allá de matrículas','Optimizar planta docente eliminando funciones duplicadas','Avanzar en equilibrio financiero operativo']}},
   FIT:{nombre:'Facultad de Ingenierías y Tecnologías',tieneInforme:true,hints:{d1:['Consolidar acreditación alta calidad Ingenieria Civil','Avanzar acreditación Ing. Industrial Valledupar y Cúcuta','Reactivar autoevaluación Ingenieria de Software (retraso 1 año)','Radicar especializaciones Calidad del Aire y Tratamiento de Aguas','Preparar Maestría y Doctorado para acreditación (elegibles fin 2026)'],d2:['Aplicar evaluación ciclo de vida por programa','Tomar decisiones sobre programas deficitarios Bucaramanga','Ajustar cupos a demanda real por campus','Revitalizar posgrados Cúcuta con baja ocupación'],d3:['Diseñar plan para reducir deserción estructural por campus','Implementar acciones para reducir tiempos de grado en Valledupar','Ejecutar plan Saber Pro: Lectura crítica y Comunicación escrita','Replicar buenas prácticas valor agregado de Cúcuta en otros campus'],d4:['Implementar planeación docente diferenciada por campus','Reducir dependencia cátedra en Valledupar','Ejecutar estrategia institucional de bilingüismo'],d5:['Estandarizar criterios y rúbricas de auditoria academica','Capacitar docentes previamente a cada proceso de auditoria','Aumentar uso pedagogico de Moodle (actualmente 62.1 pct)','Alinear resultados de aprendizaje con modelo ABET'],d6:['Estructurar portafolio extension por líneas con metas financieras','Contratar responsable comercial de extension','Recuperar ingresos educación continua'],d7:['Revisar estructura de costos Ing. Industrial Bucaramanga','Cerrar programas deficitarios en Bucaramanga','Diversificar ingresos Valledupar']}},
@@ -179,6 +166,7 @@ const stColor={'Pendiente':'#FFB800','En proceso':'#17A2B8','Completado':'#28A74
 let currentFac=null;
 
 function selectFac(fac){
+  if(sesion && sesion.rol==='decano' && fac!==sesion.facultad) return;
   currentFac=fac;
   document.querySelectorAll('.fac-btn').forEach(b=>b.classList.remove('selected'));
   document.getElementById('fac-'+fac).classList.add('selected');
@@ -189,6 +177,7 @@ function selectFac(fac){
   btn.style.opacity='1';btn.style.pointerEvents='auto';
   dims.forEach(d=>{cnt[d]=0;});
   buildDimSteps();
+  if(sesion) hidratarFacultad(fac);
 }
 
 function buildDimSteps(){
@@ -530,6 +519,42 @@ function generarPDF(){
   document.getElementById('pdf-status').textContent='PDF descargado. Recuerde tambien guardar el JSON para el seguimiento.';
   setTimeout(function(){document.getElementById('pdf-status').textContent='';},5000);
 }
+
+// ─── Persistencia en línea (Google Sheets) ─────────────────────
+let _hidratando=false;
+function hidratarFacultad(fac){
+  if(_hidratando)return;
+  _hidratando=true;
+  const local=localStorage.getItem('pf_fase1_'+fac);
+  if(local){
+    try{cargarJsonExistente(JSON.parse(local));}catch(e){}
+    _hidratando=false;
+    return;
+  }
+  cargarDeSheets(fac).then(row=>{
+    if(row&&row.json_data){try{cargarJsonExistente(JSON.parse(row.json_data));}catch(e){}}
+    _hidratando=false;
+  });
+}
+
+function guardarBorrador(){
+  if(!currentFac)return;
+  const data=buildPlanData();
+  localStorage.setItem('pf_fase1_'+currentFac,JSON.stringify(data));
+  guardarEnSheets(currentFac,'fase1',data.decano,data);
+}
+
+document.querySelector('.wrap').addEventListener('input',()=>{if(currentFac)guardarBorrador();});
+document.querySelector('.wrap').addEventListener('change',()=>{if(currentFac)guardarBorrador();});
+document.querySelector('.wrap').addEventListener('click',()=>{if(currentFac)setTimeout(guardarBorrador,0);});
+
+PadecaAuth.init({allowedRoles:['decano','admin']},function(s){
+  document.querySelector('.wrap').style.display='block';
+  if(s.rol==='decano'){
+    document.querySelector('.fac-selector').style.display='none';
+    selectFac(s.facultad);
+  }
+});
 </script>
 </body>
 </html>

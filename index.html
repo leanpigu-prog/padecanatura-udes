@@ -8,9 +8,6 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem}
 .wrap{max-width:600px;width:100%;text-align:center}
-.header{background:#0C2340;border-radius:14px;padding:28px 24px;margin-bottom:2rem;color:#fff}
-.header h1{font-size:20px;font-weight:700;margin-bottom:6px}
-.header p{font-size:13px;color:#8ab4d4}
 .cards{display:grid;gap:14px}
 .card{background:#fff;border-radius:12px;padding:22px 24px;box-shadow:0 2px 8px rgba(0,0,0,.08);text-decoration:none;color:#1a1a2e;display:flex;align-items:center;gap:16px;transition:.2s;border:2px solid transparent}
 .card:hover{border-color:#185FA5;transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.12)}
@@ -25,10 +22,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;min-heigh
 </head>
 <body>
 <div class="wrap">
-  <div class="header">
-    <h1>Plan de Trabajo Decanatura 2026</h1>
-    <p>Sistema de planeación, seguimiento y auditoría institucional · UDES</p>
-  </div>
+  <div id="udes-header-mount"></div>
   <div class="cards">
     <a class="card c1" href="fase1.html">
       <div class="card-icon">📋</div>
@@ -56,5 +50,9 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;min-heigh
     </a>
   </div>
 </div>
+<script src="udes-branding.js"></script>
+<script>
+UdesHeader.render('#udes-header-mount',{subtitulo:'Plan de Trabajo Decanatura 2026'});
+</script>
 </body>
 </html>
