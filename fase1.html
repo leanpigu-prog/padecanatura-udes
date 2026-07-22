@@ -501,8 +501,7 @@ function generarPDF(){
           doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(30,30,30);
           doc.splitTextToSize(act.descripcion,contentW-12).forEach(function(l){checkPage(doc,4.5);doc.text(l,margin+8,curY);curY+=4.5;});
           doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(120,120,120);
-          doc.text('Resp: '+act.responsable+(act.fecha?' | Fecha: '+act.fecha:''),margin+8,curY);
-          doc.setTextColor(180,180,180);doc.text('Evidencia (Fase 2): ___________________________',margin+50,curY);curY+=5;
+          doc.text('Resp: '+act.responsable+(act.fecha?' | Fecha: '+act.fecha:''),margin+8,curY);curY+=5;
         });
       }
       checkPage(doc,10);doc.setFillColor(240,250,244);doc.rect(margin,curY,contentW,8,'F');
