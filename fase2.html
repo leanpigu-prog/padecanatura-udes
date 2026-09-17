@@ -694,11 +694,20 @@ function cargarPlanDeSheets(fac){
   if(!fac){mostrarSelectorAdminFase2();return;}
   document.getElementById('upload-error').textContent='Buscando plan guardado para '+fac+'...';
   cargarDeSheets(fac).then(function(row){
-    if(!row||!row.json_data){mostrarMensajeSinDatos(fac);return;}
+    var remoto=null;
+    try{ remoto=(row&&row.json_data)?JSON.parse(row.json_data):null; }catch(e){ remoto=null; }
+    var local=null;
+    try{ var localRaw=localStorage.getItem('pf_fase1_'+fac); local=localRaw?JSON.parse(localRaw):null; }catch(e){ local=null; }
+    var usarLocal = local && (!remoto || (local.acciones||[]).length > (remoto.acciones||[]).length);
+    var data = usarLocal ? local : remoto;
+    if(!data){mostrarMensajeSinDatos(fac);return;}
     try{
-      var data=JSON.parse(row.json_data);
       data.acciones.forEach(function(a){if(!a.actividades)a.actividades=[];if(!a.seguimientos)a.seguimientos=[];});
       planData=data;
+      if(usarLocal){
+        document.getElementById('upload-error').textContent='Se cargó desde el respaldo local de este navegador (tenía más acciones que lo sincronizado en Sheets) — corrigiendo la sincronización...';
+        guardarEnSheets(fac,'fase1',data.decano,data);
+      }
       iniciarApp();
     }catch(e){mostrarMensajeSinDatos(fac);}
   });

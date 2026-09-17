@@ -153,21 +153,23 @@ window.PadecaAuth = {
   }
 };
 
+let _pendingSave = null; // body (string) del último guardarEnSheets() aún no confirmado
+
 function guardarEnSheets(facultad, fase, decano, planDataObj, cb){
   marcarEstadoSync('Guardado localmente ✓');
+  const body = JSON.stringify({
+    action:'save', facultad, fase, decano,
+    json_data: JSON.stringify(planDataObj),
+    actualizado_por: sesion ? sesion.usuario : ''
+  });
+  _pendingSave = body;
   clearTimeout(guardarEnSheets._t);
   guardarEnSheets._t = setTimeout(()=>{
     marcarEstadoSync('Sincronizando con Sheets...');
-    fetch(APPS_SCRIPT_URL, {
-      method:'POST',
-      body: JSON.stringify({
-        action:'save', facultad, fase, decano,
-        json_data: JSON.stringify(planDataObj),
-        actualizado_por: sesion ? sesion.usuario : ''
-      })
-    })
+    fetch(APPS_SCRIPT_URL, { method:'POST', body })
     .then(r=>r.json())
     .then(res=>{
+      if(body===_pendingSave) _pendingSave=null;
       marcarEstadoSync(res.ok ? 'Guardado en Sheets ✓' : 'Error al guardar en Sheets');
       if(cb) cb(!!res.ok);
     })
@@ -177,6 +179,17 @@ function guardarEnSheets(facultad, fase, decano, planDataObj, cb){
     });
   }, 3000);
 }
+
+// Si la usuaria sale de la página (cierra pestaña, navega a otra fase, da "atrás") antes de
+// que se cumplan los 3s del debounce de arriba, el setTimeout pendiente se cancela y esa última
+// edición nunca llegaba a Sheets. sendBeacon() sí sobrevive al cierre de la página.
+window.addEventListener('pagehide', ()=>{
+  if(_pendingSave){
+    clearTimeout(guardarEnSheets._t);
+    navigator.sendBeacon(APPS_SCRIPT_URL, _pendingSave);
+    _pendingSave = null;
+  }
+});
 
 function cargarDeSheets(facultad){
   if(!facultad) return Promise.resolve(null);
