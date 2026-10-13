@@ -288,6 +288,9 @@ function renderAcCard(a){
   var estadoAct=getEstadoActual(a);
   var lastSeg=getLastSeg(a);
   var lastPct=lastSeg?parseInt(lastSeg.avance||0):0;
+  // La nota del corte se precarga solo si el último seguimiento es del mismo corte que se está editando;
+  // si no, se perdería al guardar (el guardado reemplaza la entrada del corte con lo que hay en el formulario).
+  var notasPrev=(lastSeg&&lastSeg.corte===corteActual&&lastSeg.notas)?String(lastSeg.notas).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):'';
   var stc=stColor[estadoAct]||'#ccc';
 
   // Actividades
@@ -366,7 +369,7 @@ function renderAcCard(a){
     '<span class="pill pill-done'+(estadoAct==='Completado'?' on':'')+'" id="st-'+aid+'-done" onclick="setStatusConValidacion(\''+aid+'\',\'Completado\')">Completado</span>'+
     '</div></div>'+
     '<div class="mf"><label class="fl">Notas del corte</label>'+
-    '<textarea id="notas-'+aid+'" rows="2" placeholder="Evidencias, obstáculos, observaciones del período..."></textarea></div>'+
+    '<textarea id="notas-'+aid+'" rows="2" placeholder="Evidencias, obstáculos, observaciones del período...">'+notasPrev+'</textarea></div>'+
     actsHtml+
     '</div>'+
     histHtml+
