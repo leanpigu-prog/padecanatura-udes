@@ -1,0 +1,27 @@
+name: Supabase keep-alive
+
+# El plan gratuito de Supabase pausa el proyecto tras 7 dias sin actividad.
+# Este workflow hace una consulta liviana cada 3 dias para evitarlo.
+# Requiere definir en el repo (Settings > Secrets and variables > Actions > Variables):
+#   SUPABASE_URL       = https://xxxx.supabase.co
+#   SUPABASE_ANON_KEY  = clave anon/public (NO la service_role)
+
+on:
+  schedule:
+    - cron: '17 12 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar a la funcion ping
+        env:
+          URL: ${{ vars.SUPABASE_URL }}
+          KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          test -n "$URL" && test -n "$KEY" || { echo "Faltan SUPABASE_URL / SUPABASE_ANON_KEY"; exit 1; }
+          code=$(curl -s -o /tmp/r.txt -w "%{http_code}" -X POST "$URL/rest/v1/rpc/ping" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" -d '{}')
+          echo "HTTP $code"; cat /tmp/r.txt
+          test "$code" = "200"
