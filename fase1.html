@@ -126,7 +126,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#185FA5;box-sh
 <div class="step" id="s7"></div>
 <div class="step" id="s8">
   <div class="shd"><span class="stag">Paso 9 - Resumen</span><div class="stit">Revisión y descarga del plan</div></div>
-  <div class="json-banner"><strong>¿Para qué sirve el JSON?</strong>El JSON guarda todas sus acciones y actividades. En el Formulario de Seguimiento (Fase 2) cargue ese JSON y encontrara su plan listo para actualizar avances y subir evidencias. <strong>Guárdelo en un lugar seguro.</strong></div>
+  <div class="json-banner"><strong>Tu plan se guarda en línea</strong>Todo lo que registras se guarda automáticamente. Para continuar con el seguimiento usa el botón <em>Guardar y pasar a Seguimiento</em>; ya no necesitas descargar el JSON. El JSON, el PDF y el TXT quedan como respaldo opcional.</div>
   <div class="card" id="res_id"></div>
   <div class="sgrid" id="res_grid"></div>
   <div id="res_det"></div>
@@ -136,12 +136,14 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#185FA5;box-sh
     <button class="btn3 btn-txt" onclick="descargarTxt()">Descargar TXT<br><span style="font-size:10px;font-weight:400;opacity:.85">Texto plano</span></button>
   </div>
   <div id="pdf-status"></div>
-  <div class="nav"><button class="bbtn" onclick="goTo(7)">Atrás</button><span class="sc">Fase 1 completa - Recuerde descargar el JSON</span><span></span></div>
+  <div class="nav"><button class="bbtn" onclick="goTo(7)">Atrás</button><span class="sc">Tu plan se guarda en línea automáticamente</span><button class="nbtn" onclick="padecaIrA('fase2.html')">Guardar y pasar a Seguimiento ›</button></div>
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="udes-branding.js"></script>
-<script src="padeca-auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="padeca-config.js"></script>
+<script src="padeca-auth.js?v=2"></script>
 <script>
 UdesHeader.render('#udes-header-mount',{subtitulo:'Plan de Trabajo Anual de Decanatura · Acciones correctivas 2026',badge:'Fase 1 · Planeación'});
 const FACULTADES={
@@ -235,7 +237,7 @@ function addAc(dim,prefill){
   const cont=document.getElementById('ac_'+dim);
   const em=cont.querySelector('.empty');if(em)em.remove();
   const div=document.createElement('div');
-  div.className='ab';div.id=dim+'_b_'+n;
+  div.className='ab';div.id=dim+'_b_'+n;if(isPO)div._base=prefill;
   div.innerHTML=
     '<div class="anum">Acción '+n+' <button class="dbtn" onclick="delAc(\''+dim+'\','+n+')">eliminar</button></div>'+
     '<div class="mf"><label class="fl">Descripción de la acción *</label><textarea id="'+dim+'_a_'+n+'" rows="2" placeholder="Describa la accion derivada del informe de gestión 2025...">'+ptxt+'</textarea></div>'+
@@ -377,6 +379,23 @@ function goTo(n){
   if(n===8)buildRes();window.scrollTo(0,0);
 }
 
+// Fase 1 solo edita los campos del plan. Todo lo que agregaron Fase 2 y Fase 3 (seguimientos,
+// evidencias, auditoría) se conserva tal cual, para no borrarlo al guardar desde esta fase.
+function conExtras(bl,o){
+  var b=bl._base;
+  if(!b)return o;
+  Object.keys(b).forEach(function(k){
+    if(k==='seguimientos'){if(Array.isArray(b.seguimientos)&&b.seguimientos.length)o.seguimientos=b.seguimientos;}
+    else if(!(k in o))o[k]=b[k];
+  });
+  return o;
+}
+function conExtrasPlan(o){
+  var b=window._planBase;
+  if(b)Object.keys(b).forEach(function(k){if(!(k in o))o[k]=b[k];});
+  return o;
+}
+
 function getAcs(dim){
   const res=[];
   for(let i=1;i<=cnt[dim];i++){
@@ -385,7 +404,7 @@ function getAcs(dim){
     if(ac&&ac.value.trim()){
       const acId=dim+'_'+i;
       var ebpo=document.getElementById(dim+'_bpo_'+i);var ebpm=document.getElementById(dim+'_bpm_'+i);
-      res.push({id:acId,dimension:dim,dimensionNombre:dimNames[dims.indexOf(dim)],accion:ac.value.trim(),pilar:(document.getElementById(dim+'_p_'+i)||{}).value||'No definido',responsable:(document.getElementById(dim+'_r_'+i)||{}).value||'Por definir',fechaLimite:(document.getElementById(dim+'_f_'+i)||{}).value||'Por definir',recursos:(document.getElementById(dim+'_rc_'+i)||{}).value||'Por definir',meta:(document.getElementById(dim+'_meta_'+i)||{}).value||'Por definir',estadoInicial:getStatus(dim,i),presupuestoOrdinario:!!(ebpo&&ebpo.classList.contains('activo')),presupuestoMejoramiento:!!(ebpm&&ebpm.classList.contains('activo')),actividades:getActividades(acId),seguimientos:[]});
+      res.push(conExtras(bl,{id:acId,dimension:dim,dimensionNombre:dimNames[dims.indexOf(dim)],accion:ac.value.trim(),pilar:(document.getElementById(dim+'_p_'+i)||{}).value||'No definido',responsable:(document.getElementById(dim+'_r_'+i)||{}).value||'Por definir',fechaLimite:(document.getElementById(dim+'_f_'+i)||{}).value||'Por definir',recursos:(document.getElementById(dim+'_rc_'+i)||{}).value||'Por definir',meta:(document.getElementById(dim+'_meta_'+i)||{}).value||'Por definir',estadoInicial:getStatus(dim,i),presupuestoOrdinario:!!(ebpo&&ebpo.classList.contains('activo')),presupuestoMejoramiento:!!(ebpm&&ebpm.classList.contains('activo')),actividades:getActividades(acId),seguimientos:[]}));
     }
   }
   return res;
@@ -421,7 +440,7 @@ function buildRes(){
 function buildPlanData(){
   const fac=FACULTADES[currentFac]||{nombre:''};
   const acciones=[];dims.forEach(d=>acciones.push(...getAcs(d)));
-  return{version:'fase1-v4-con-actividades',fechaExportacion:new Date().toISOString().slice(0,10),facultad:{codigo:currentFac,nombre:fac.nombre,tieneInforme:fac.tieneInforme},decano:document.getElementById('decano').value||'Por definir',fechaElaboracion:document.getElementById('fecha_elab').value||'Por definir',periodo:'2026',totalAcciones:acciones.length,totalActividades:acciones.reduce((s,a)=>s+a.actividades.length,0),acciones};
+  return conExtrasPlan({version:'fase1-v4-con-actividades',fechaExportacion:new Date().toISOString().slice(0,10),facultad:{codigo:currentFac,nombre:fac.nombre,tieneInforme:fac.tieneInforme},decano:document.getElementById('decano').value||'Por definir',fechaElaboracion:document.getElementById('fecha_elab').value||'Por definir',periodo:'2026',totalAcciones:acciones.length,totalActividades:acciones.reduce((s,a)=>s+a.actividades.length,0),acciones});
 }
 
 function descargarJSON(){
@@ -515,32 +534,39 @@ function generarPDF(){
   var total=doc.getNumberOfPages();
   for(var p=1;p<=total;p++){doc.setPage(p);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,160,160);doc.text('Pag. '+p+'/'+total+' - Planeación Institucional - UDES - Fase 1: Planeación',margin,pageH-5);}
   doc.save('PlanTrabajo_'+currentFac+'_2026.pdf');
-  document.getElementById('pdf-status').textContent='PDF descargado. Recuerde tambien guardar el JSON para el seguimiento.';
+  descargarJsonRespaldo('PlanTrabajo_'+currentFac+'_2026',buildPlanData());
+  document.getElementById('pdf-status').textContent='PDF descargado. También se descargó el JSON de respaldo (el plan ya queda guardado en línea).';
   setTimeout(function(){document.getElementById('pdf-status').textContent='';},5000);
 }
 
-// ─── Persistencia en línea (Google Sheets) ─────────────────────
-let _hidratando=false;
+// ─── Persistencia en línea (Supabase) ─────────────────────────
+let _hidratando=false, _hidratado=false;
 function hidratarFacultad(fac){
   if(_hidratando)return;
-  _hidratando=true;
-  const local=localStorage.getItem('pf_fase1_'+fac);
-  if(local){
-    try{cargarJsonExistente(JSON.parse(local));}catch(e){}
+  _hidratando=true; _hidratado=false;
+  PadecaCarga.mostrar('Cargando tu plan guardado…');
+  cargarPlan(fac).then(function(r){
+    if(!r.ok){
+      _hidratando=false;
+      PadecaCarga.error('No se pudo cargar tu plan ('+r.error+'). No se editará nada hasta que cargue, para no perder tu información.',function(){hidratarFacultad(fac);});
+      return;
+    }
+    try{
+      window._planBase=r.data||null;
+      if(r.data && r.data.acciones && r.data.acciones.length){cargarJsonExistente(r.data);}
+    }catch(e){}
     _hidratando=false;
-    return;
-  }
-  cargarDeSheets(fac).then(row=>{
-    if(row&&row.json_data){try{cargarJsonExistente(JSON.parse(row.json_data));}catch(e){}}
-    _hidratando=false;
+    _hidratado=true;
+    PadecaCarga.ocultar();
+    if(r.desdeLocal)guardarBorrador();
   });
 }
 
 function guardarBorrador(){
-  if(!currentFac)return;
+  if(!currentFac||!_hidratado)return;
   const data=buildPlanData();
   localStorage.setItem('pf_fase1_'+currentFac,JSON.stringify(data));
-  guardarEnSheets(currentFac,'fase1',data.decano,data);
+  guardarPlan(currentFac,'fase1',data.decano,data);
 }
 
 document.querySelector('.wrap').addEventListener('input',()=>{if(currentFac)guardarBorrador();});

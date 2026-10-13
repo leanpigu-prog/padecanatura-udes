@@ -179,7 +179,9 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="udes-branding.js"></script>
-<script src="padeca-auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="padeca-config.js"></script>
+<script src="padeca-auth.js?v=2"></script>
 <script>
 UdesHeader.render('#udes-header-mount',{subtitulo:'Formulario de Seguimiento - Plan de Trabajo de Decanatura 2026',badge:'Fase 2 · Seguimiento'});
 var planData=null;
@@ -666,11 +668,12 @@ function generarPDF(){
   var t=doc.getNumberOfPages();
   for(var p=1;p<=t;p++){doc.setPage(p);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,160,160);doc.text('Pag. '+p+'/'+t+' - Planeación Institucional - UDES - Fase 2: Seguimiento - '+corteActual,margin,pageH-5);}
   doc.save('Seguimiento_'+(planData.facultad.codigo||'FAC')+'_'+corteActual.replace(/\s/g,'_')+'.pdf');
-  document.getElementById('status-msg').textContent='PDF de seguimiento descargado correctamente.';
+  descargarJsonRespaldo('Seguimiento_'+(planData.facultad.codigo||'FAC')+'_'+corteActual.replace(/\s/g,'_'),planData);
+  document.getElementById('status-msg').textContent='PDF de seguimiento y JSON de respaldo descargados correctamente.';
   setTimeout(function(){document.getElementById('status-msg').textContent='';},4000);
 }
 
-// ─── Persistencia en línea (Google Sheets) ─────────────────────
+// ─── Persistencia en línea (Supabase) ─────────────────────
 function mostrarMensajeSinDatos(fac){
   document.getElementById('upload-error').textContent='Aún no hay un Plan de Fase 1 guardado en línea para la facultad '+fac+'. Puede cargar un archivo JSON manualmente abajo como respaldo.';
 }
@@ -692,22 +695,20 @@ function mostrarSelectorAdminFase2(){
 
 function cargarPlanDeSheets(fac){
   if(!fac){mostrarSelectorAdminFase2();return;}
-  document.getElementById('upload-error').textContent='Buscando plan guardado para '+fac+'...';
-  cargarDeSheets(fac).then(function(row){
-    var remoto=null;
-    try{ remoto=(row&&row.json_data)?JSON.parse(row.json_data):null; }catch(e){ remoto=null; }
-    var local=null;
-    try{ var localRaw=localStorage.getItem('pf_fase1_'+fac); local=localRaw?JSON.parse(localRaw):null; }catch(e){ local=null; }
-    var usarLocal = local && (!remoto || (local.acciones||[]).length > (remoto.acciones||[]).length);
-    var data = usarLocal ? local : remoto;
-    if(!data){mostrarMensajeSinDatos(fac);return;}
+  document.getElementById('upload-error').textContent='';
+  PadecaCarga.mostrar('Cargando el plan de '+fac+'…');
+  cargarPlan(fac).then(function(r){
+    if(!r.ok){
+      PadecaCarga.error('No se pudo cargar el plan de '+fac+' ('+r.error+'). Revisa tu conexión e intenta de nuevo.',function(){cargarPlanDeSheets(fac);});
+      return;
+    }
+    PadecaCarga.ocultar();
+    var data=r.data;
+    if(!data||!data.acciones||!data.acciones.length){mostrarMensajeSinDatos(fac);return;}
     try{
       data.acciones.forEach(function(a){if(!a.actividades)a.actividades=[];if(!a.seguimientos)a.seguimientos=[];});
       planData=data;
-      if(usarLocal){
-        document.getElementById('upload-error').textContent='Se cargó desde el respaldo local de este navegador (tenía más acciones que lo sincronizado en Sheets) — corrigiendo la sincronización...';
-        guardarEnSheets(fac,'fase1',data.decano,data);
-      }
+      if(r.desdeLocal)guardarPlan(fac,'fase1',data.decano,data);
       iniciarApp();
     }catch(e){mostrarMensajeSinDatos(fac);}
   });
@@ -716,7 +717,7 @@ function cargarPlanDeSheets(fac){
 function guardarBorradorFase2(){
   if(!planData)return;
   capturarSeguimientoSilencioso();
-  guardarEnSheets(planData.facultad.codigo,'fase2',planData.decano,planData);
+  guardarPlan(planData.facultad.codigo,'fase2',planData.decano,planData);
 }
 document.getElementById('main-app').addEventListener('input',guardarBorradorFase2);
 document.getElementById('main-app').addEventListener('change',guardarBorradorFase2);

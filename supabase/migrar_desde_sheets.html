@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Migración Padecanatura: Google Sheets a Supabase</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1a1a2e;margin:0;padding:24px}
+.wrap{max-width:860px;margin:0 auto}
+h1{font-size:18px;color:#0C2340;margin:0 0 4px}
+p.sub{font-size:13px;color:#667;margin:0 0 18px;line-height:1.5}
+.card{background:#fff;border-radius:12px;padding:18px 20px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card h2{font-size:14px;margin:0 0 10px;color:#0C2340}
+input[type=email],input[type=password]{border:1px solid #d8e2ed;border-radius:7px;padding:9px 11px;font-size:13px;margin-right:8px;width:230px;max-width:100%}
+button{background:#0C2340;color:#fff;border:none;border-radius:7px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.sec{background:#fff;color:#0C2340;border:1.5px solid #0C2340}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+th,td{padding:8px 6px;border-bottom:1px solid #e8eef5;text-align:left}
+th{font-size:11px;color:#667;text-transform:uppercase}
+.ok{color:#1b7a34;font-weight:700}.warn{color:#a76b00;font-weight:700}.err{color:#b71c1c;font-weight:700}
+#log{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:#0c2340;color:#d6e4f5;border-radius:8px;padding:12px;max-height:220px;overflow:auto;white-space:pre-wrap;min-height:40px}
+.hint{font-size:12px;color:#667;margin-top:6px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Migración Padecanatura: Google Sheets a Supabase</h1>
+  <p class="sub">Herramienta de un solo uso. Lee los planes del Google Sheet (solo lectura) y los copia a Supabase con tu sesión de <b>admin</b>. Nunca borra nada. Los datos van directo entre tu navegador y los servicios; no pasan por terceros.</p>
+
+  <div class="card">
+    <h2>1. Iniciar sesión como admin</h2>
+    <input type="email" id="email" value="admin@padecanatura-udes.invalid" autocomplete="username">
+    <input type="password" id="pass" placeholder="Contraseña" autocomplete="current-password">
+    <button id="btnLogin">Ingresar</button>
+    <div id="estadoLogin" class="hint"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Comparar Sheets y Supabase</h2>
+    <button id="btnLeer" disabled>Leer planes (solo lectura)</button>
+    <div id="tabla"></div>
+    <div class="hint" id="notaFCAV" style="display:none">
+      FCAV: si el Sheet la tiene vacía, elige el respaldo JSON descargado de Fase 1 (<code>PlanTrabajo_FCAV_2026….json</code>):
+      <input type="file" id="jsonFCAV" accept=".json">
+      <div style="margin-top:8px"><label><input type="checkbox" id="reemplazar"> Reemplazar el plan de FCAV que ya está en Supabase con este archivo (queda una copia en el historial)</label></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3. Cargar a Supabase</h2>
+    <button id="btnCargar" disabled>Cargar los planes marcados</button>
+    <div class="hint">Si el plan ya existe en Supabase, se actualiza (queda la versión anterior en el historial). Los planes vacíos nunca se cargan.</div>
+  </div>
+
+  <div class="card"><h2>Registro</h2><div id="log"></div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="../padeca-config.js"></script>
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRW1ZDeUMkbIkZ-G6-2z5iI1SZOcG_wcQbo3lk0pXZJBv4MQu1IJMXJ06QEfCb0dg/exec';
+const FACS = ['FCS','FIT','FCMS','FCN','FCAV','FCEAC','CFTT'];
+const cfg = window.PADECA_SUPABASE || {};
+const sb = window.supabase.createClient(cfg.url, cfg.anonKey, {auth:{persistSession:false}});
+const $ = id => document.getElementById(id);
+let filas = {};   // fac -> {sheets:{decano,fase,data,n}, supa:{version,n}|null, jsonFCAV, marcar}
+
+function log(t){ $('log').textContent += t + '\n'; $('log').scrollTop = 1e9; }
+const nAcc = d => (d && Array.isArray(d.acciones)) ? d.acciones.length : 0;
+
+$('btnLogin').onclick = async () => {
+  if(!/^https:\/\//.test(cfg.url || '')){ $('estadoLogin').innerHTML = '<span class="err">Falta configurar padeca-config.js</span>'; return; }
+  const {data, error} = await sb.auth.signInWithPassword({email: $('email').value.trim(), password: $('pass').value});
+  if(error){ $('estadoLogin').innerHTML = '<span class="err">' + error.message + '</span>'; return; }
+  const {data: perfil} = await sb.from('perfiles').select('rol,nombre').eq('user_id', data.user.id).maybeSingle();
+  if(!perfil || perfil.rol !== 'admin'){ $('estadoLogin').innerHTML = '<span class="err">Este usuario no es admin.</span>'; await sb.auth.signOut(); return; }
+  $('estadoLogin').innerHTML = '<span class="ok">Sesión de admin: ' + perfil.nombre + '</span>';
+  $('btnLeer').disabled = false;
+  log('Sesión admin iniciada.');
+};
+
+async function leerSheets(fac){
+  const r = await fetch(APPS_SCRIPT_URL + '?action=get&facultad=' + fac).then(x => x.json());
+  if(!r.ok || !r.found) return null;
+  let data = null;
+  try{ data = JSON.parse(r.row.json_data); }catch(e){}
+  return {decano: r.row.decano, fase: r.row.fase_actual, data, n: nAcc(data)};
+}
+
+$('btnLeer').onclick = async () => {
+  $('btnLeer').disabled = true; filas = {};
+  log('Leyendo Google Sheets y Supabase…');
+  for(const f of FACS){
+    try{
+      const sheets = await leerSheets(f);
+      const {data: s, error} = await sb.from('planes').select('version,total_acciones,fase_actual').eq('facultad', f).maybeSingle();
+      if(error) throw new Error(error.message);
+      filas[f] = {sheets, supa: s ? {version: s.version, n: s.total_acciones} : null, jsonFCAV: null};
+      log(f + ': Sheets=' + (sheets ? sheets.n : '—') + ' acciones | Supabase=' + (s ? s.total_acciones : '—'));
+    }catch(e){ log(f + ': ERROR ' + e.message); filas[f] = {sheets: null, supa: null, error: e.message}; }
+  }
+  pintar();
+  $('btnLeer').disabled = false;
+  $('btnCargar').disabled = false;
+};
+
+$('reemplazar').onchange = () => pintar();
+$('jsonFCAV').onchange = async ev => {
+  const file = ev.target.files[0]; if(!file) return;
+  try{
+    const d = JSON.parse(await file.text());
+    if(!d.facultad || d.facultad.codigo !== 'FCAV' || nAcc(d) === 0) throw new Error('el archivo no es un plan de FCAV con acciones');
+    filas.FCAV.jsonFCAV = d;
+    log('Respaldo FCAV leído: ' + nAcc(d) + ' acciones.');
+    pintar();
+  }catch(e){ log('Respaldo FCAV inválido: ' + e.message); }
+};
+
+function origenDe(f){
+  const x = filas[f];
+  if(x.jsonFCAV && x.jsonFCAV.acciones.length > (x.sheets ? x.sheets.n : 0)) return {data: x.jsonFCAV, decano: x.jsonFCAV.decano, fase: x.jsonFCAV.acciones.some(a => a.seguimientos && a.seguimientos.length) ? 'fase2' : 'fase1', n: nAcc(x.jsonFCAV), fuente: 'respaldo JSON'};
+  if(x.sheets && x.sheets.n > 0) return {data: x.sheets.data, decano: x.sheets.decano, fase: x.sheets.fase || 'fase1', n: x.sheets.n, fuente: 'Google Sheets'};
+  return null;
+}
+
+function pintar(){
+  let h = '<table><tr><th></th><th>Facultad</th><th>Sheets</th><th>Supabase</th><th>Se cargará</th></tr>';
+  FACS.forEach(f => {
+    const x = filas[f]; if(!x) return;
+    const o = origenDe(f);
+    const forzar = f === 'FCAV' && x.jsonFCAV && $('reemplazar') && $('reemplazar').checked;
+    const yaIgual = o && x.supa && x.supa.n >= o.n && !forzar;
+    let estado = '<span class="warn">sin datos para cargar</span>', marca = false;
+    if(x.error) estado = '<span class="err">' + x.error + '</span>';
+    else if(o && yaIgual) estado = '<span class="ok">Supabase ya tiene ' + x.supa.n + ' (no se toca)</span>';
+    else if(o){ estado = o.n + ' acciones desde ' + o.fuente; marca = true; }
+    h += '<tr><td><input type="checkbox" data-f="' + f + '" ' + (marca ? 'checked' : 'disabled') + '></td><td><b>' + f + '</b></td><td>' +
+         (x.sheets ? x.sheets.n : '—') + '</td><td>' + (x.supa ? x.supa.n + ' (v' + x.supa.version + ')' : '—') + '</td><td>' + estado + '</td></tr>';
+  });
+  $('tabla').innerHTML = h + '</table>';
+  $('notaFCAV').style.display = filas.FCAV ? 'block' : 'none';
+}
+
+$('btnCargar').onclick = async () => {
+  const marcadas = [...document.querySelectorAll('#tabla input[type=checkbox]:checked')].map(c => c.dataset.f);
+  if(!marcadas.length){ log('Nada marcado para cargar.'); return; }
+  if(!confirm('Se cargarán a Supabase: ' + marcadas.join(', ') + '. ¿Continuar?')) return;
+  $('btnCargar').disabled = true;
+  for(const f of marcadas){
+    const o = origenDe(f), x = filas[f];
+    if(!o || o.n === 0 || !o.data || !o.data.facultad || o.data.facultad.codigo !== f){ log(f + ': omitida (datos no válidos)'); continue; }
+    let res;
+    if(!x.supa){
+      res = await sb.from('planes').insert({facultad: f, decano: o.decano || null, fase_actual: o.fase, data: o.data}).select('version,total_acciones');
+    }else{
+      res = await sb.from('planes').update({decano: o.decano || null, fase_actual: o.fase, data: o.data}).eq('facultad', f).eq('version', x.supa.version).select('version,total_acciones');
+    }
+    if(res.error) log(f + ': ERROR ' + res.error.message);
+    else if(!res.data || !res.data.length) log(f + ': no se actualizó (la versión cambió; vuelve a leer)');
+    else log(f + ': OK, ' + res.data[0].total_acciones + ' acciones (versión ' + res.data[0].version + ')');
+  }
+  log('Terminado. Releyendo para verificar…');
+  $('btnLeer').click();
+};
+</script>
+</body>
+</html>

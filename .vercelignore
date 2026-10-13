@@ -1,0 +1,5 @@
+supabase/
+.github/
+.impeccable/
+.nojekyll
+apps_script_padecanatura.gs

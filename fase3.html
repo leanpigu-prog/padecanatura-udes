@@ -124,7 +124,9 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1a
   </div>
 </div>
 <script src="udes-branding.js"></script>
-<script src="padeca-auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="padeca-config.js"></script>
+<script src="padeca-auth.js?v=2"></script>
 <script>
 UdesHeader.render('#udes-header-mount',{subtitulo:'Revisión y verificación de evidencias por el auditor institucional',badge:'Fase 3 · Auditoría'});
 var planData = null;
@@ -669,7 +671,9 @@ function generarPDF() {
   }
 
   doc.save('Auditoria_'+(planData.facultad.codigo||'FAC')+'_'+new Date().toISOString().slice(0,10)+'.pdf');
-  setStatus('PDF de auditoría descargado ✓');
+  guardarTodo();
+  descargarJsonRespaldo('Auditoria_'+(planData.facultad.codigo||'FAC')+'_'+new Date().toISOString().slice(0,10),planData);
+  setStatus('PDF de auditoría y JSON de respaldo descargados ✓');
 }
 
 // ─── Persistencia en línea (Google Sheets) ─────────────────────
@@ -689,18 +693,24 @@ function mostrarSelectorFacultad(){
 
 function cargarPlanDeSheets(fac){
   if(!fac){mostrarSelectorFacultad();return;}
-  document.getElementById('upload-err').textContent='Buscando plan de la facultad '+fac+'...';
-  cargarDeSheets(fac).then(function(row){
-    if(!row||!row.json_data){
+  document.getElementById('upload-err').textContent='';
+  PadecaCarga.mostrar('Cargando el plan de la facultad '+fac+'…');
+  cargarPlan(fac).then(function(r){
+    if(!r.ok){
+      PadecaCarga.error('No se pudo cargar el plan de '+fac+' ('+r.error+'). Revisa tu conexión e intenta de nuevo.',function(){cargarPlanDeSheets(fac);});
+      return;
+    }
+    PadecaCarga.ocultar();
+    if(!r.found||!r.data||!r.data.acciones||!r.data.acciones.length){
       document.getElementById('upload-err').textContent='No hay datos guardados para '+fac+'. Puede cargar un archivo JSON manualmente arriba.';
       return;
     }
-    if(row.fase_actual==='fase1'){
+    if(r.fase_actual==='fase1'){
       document.getElementById('upload-err').textContent='La Fase 2 aún no ha registrado seguimientos para la facultad '+fac+'.';
       return;
     }
     try{
-      var data=JSON.parse(row.json_data);
+      var data=r.data;
       data.acciones.forEach(function(a){if(!a.actividades)a.actividades=[];if(!a.seguimientos)a.seguimientos=[];});
       planData=data;
       document.getElementById('upload-section').style.display='none';
@@ -714,7 +724,7 @@ function cargarPlanDeSheets(fac){
 function guardarBorradorFase3(){
   if(!planData)return;
   guardarTodo();
-  guardarEnSheets(planData.facultad.codigo,'fase3',planData.decano,planData);
+  guardarPlan(planData.facultad.codigo,'fase3',planData.decano,planData);
 }
 document.getElementById('app').addEventListener('input',guardarBorradorFase3);
 document.getElementById('app').addEventListener('change',guardarBorradorFase3);
