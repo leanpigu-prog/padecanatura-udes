@@ -152,3 +152,6 @@ create policy historial_leer on public.planes_historial
   using (public.rol_actual() = 'admin');
 
 -- No hay politica de DELETE: nadie puede borrar planes desde la aplicacion.
+
+-- API de solo lectura (Edge Function api-planes): la service_role necesita leer planes.
+grant select on public.planes to service_role;
