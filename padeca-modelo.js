@@ -217,11 +217,66 @@
     return plan;
   }
 
+  /* ---------- Importar un respaldo JSON (fusión sin borrar nada) ---------- */
+
+  const _firma = n => [n.fecha || '', n.estado || '', typeof n.avance === 'number' ? n.avance : '', (n.texto || '').trim(), (n.link || '').trim(), n.semestre || ''].join('|');
+
+  // Agrega a `destino` las notas de `origen` que no existan (por id o por contenido). Una nota más
+  // antigua que la última se inserta antes, para no cambiar cuál es la "vigente". Devuelve cuántas agregó.
+  function _fusionarNotas(destino, origen){
+    if(!Array.isArray(destino.notas)) destino.notas = [];
+    const ids = new Set(destino.notas.map(n => n.id));
+    const firmas = new Set(destino.notas.map(_firma));
+    let nuevas = 0;
+    (origen.notas || []).forEach(n => {
+      if(ids.has(n.id) || firmas.has(_firma(n))) return;
+      const copia = JSON.parse(JSON.stringify(n));
+      if(!copia.id || ids.has(copia.id)) copia.id = nuevoId('nt');
+      let pos = destino.notas.findIndex(x => (x.fecha || '') > (copia.fecha || ''));
+      if(pos < 0) pos = destino.notas.length;
+      destino.notas.splice(pos, 0, copia);
+      ids.add(copia.id); firmas.add(_firma(copia));
+      nuevas += 1;
+    });
+    return nuevas;
+  }
+
+  // Fusiona el plan `importado` (respaldo JSON de la misma facultad) dentro de `actual`.
+  // Solo AGREGA: notas nuevas y auditorías que falten. No borra, no cambia "Aplica 2026" ni el orden,
+  // y no crea acciones o actividades que no existan en el plan actual (las cuenta como no encontradas).
+  // Devuelve {ok, plan, resumen} o {ok:false, error}.
+  function fusionarPlan(actual, importado){
+    if(!actual || !Array.isArray(actual.acciones)) return {ok: false, error: 'No hay un plan cargado.'};
+    if(!importado || !Array.isArray(importado.acciones) || !importado.facultad) return {ok: false, error: 'El archivo no parece un respaldo de Padecanatura.'};
+    const codA = actual.facultad && actual.facultad.codigo, codI = importado.facultad && importado.facultad.codigo;
+    if(codA !== codI) return {ok: false, error: 'El respaldo es de la facultad ' + codI + ' y el plan abierto es de ' + codA + '.'};
+    const imp = migrarPlan(importado);
+    const plan = migrarPlan(actual);
+    const base = migrarPlan(actual);
+    const resumen = {notasAccion: 0, notasActividad: 0, auditorias: 0, accionesNoEncontradas: 0, actividadesNoEncontradas: 0, porAccion: []};
+    imp.acciones.forEach(ai => {
+      const a = plan.acciones.find(x => x.uid === ai.uid) || plan.acciones.find(x => x.id === ai.id);
+      if(!a){ resumen.accionesNoEncontradas += 1; return; }
+      let nAcc = _fusionarNotas(a, ai), nAct = 0, aud = 0;
+      if(!a.auditoriaAccion && ai.auditoriaAccion){ a.auditoriaAccion = JSON.parse(JSON.stringify(ai.auditoriaAccion)); aud += 1; }
+      (ai.actividades || []).forEach(xi => {
+        const x = (a.actividades || []).find(y => y.uid === xi.uid) || (a.actividades || []).find(y => y.id === xi.id);
+        if(!x){ resumen.actividadesNoEncontradas += 1; return; }
+        nAct += _fusionarNotas(x, xi);
+        if(!x.auditoria && xi.auditoria){ x.auditoria = JSON.parse(JSON.stringify(xi.auditoria)); aud += 1; }
+      });
+      resumen.notasAccion += nAcc; resumen.notasActividad += nAct; resumen.auditorias += aud;
+      if(nAcc || nAct || aud) resumen.porAccion.push({id: a.id, notasAccion: nAcc, notasActividad: nAct, auditorias: aud, avanceAntes: avanceAccion(base.acciones.find(x => x.uid === a.uid) || a), avanceDespues: avanceAccion(a)});
+    });
+    resumen.total = resumen.notasAccion + resumen.notasActividad + resumen.auditorias;
+    return {ok: true, plan, resumen};
+  }
+
   const api = {
     ESTADOS, PESO_ESTADO, VERSION_MODELO, nuevoId, esActiva, ultimaNota, estadoActividad, avanceActividad, linkVigente,
     actividadesActivas, avanceAccion, estadoAccion, accionesActivas, avanceGlobal, totalesPlan,
     agregarNota, borrarNota, moverElemento, moverActividadPorUid, insertarActividadDebajo,
-    semestreDeCorte, migrarPlan
+    semestreDeCorte, migrarPlan, fusionarPlan
   };
   if(typeof module !== 'undefined' && module.exports) module.exports = api;
   root.PadecaModelo = api;

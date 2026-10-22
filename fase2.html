@@ -144,6 +144,14 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 .act-av{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#0C2340}
 .act-av-bar{display:inline-block;width:70px;height:6px;border-radius:4px;background:#e0e7ef;overflow:hidden}
 .act-av-bar span{display:block;height:100%}
+.imp-overlay{position:fixed;inset:0;background:rgba(12,35,64,.55);z-index:3000;display:flex;align-items:center;justify-content:center;padding:16px}
+.imp-box{background:#fff;border-radius:12px;max-width:560px;width:100%;max-height:85vh;overflow:auto;padding:20px 22px;font-size:13px;color:#1a1a2e;border-top:3px solid #C9A227}
+.imp-box h3{font-size:15px;color:#0C2340;margin-bottom:8px}
+.imp-box ul{margin:8px 0 8px 18px;line-height:1.6}
+.imp-tabla{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px}
+.imp-tabla th,.imp-tabla td{border-bottom:1px solid #e2e9f2;padding:4px 6px;text-align:left}
+.imp-aviso{background:#FFF8E1;border:1px solid #f0d890;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:12px}
+.imp-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -180,6 +188,8 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
     </div>
     <div class="tb-actions">
       <button class="tbtn tbtn-sec" onclick="reiniciar()">Cargar otro plan</button>
+      <button class="tbtn tbtn-sec" onclick="document.getElementById('imp-input').click()" title="Suma al plan las notas de un respaldo JSON, sin borrar nada">📥 Importar respaldo</button>
+      <input type="file" id="imp-input" accept=".json" style="display:none" onchange="importarRespaldo(event)">
       <button class="tbtn tbtn-grn" onclick="guardarAhora()">💾 Guardar</button>
       <button class="tbtn tbtn-pri" onclick="generarPDF()">📄 PDF</button>
       <button class="tbtn" onclick="descargarJSONAct()" style="background:#E65100;color:#fff">📦 JSON → Fase 3</button>
@@ -203,7 +213,7 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 <script src="udes-branding.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="padeca-config.js"></script>
-<script src="padeca-modelo.js?v=3"></script>
+<script src="padeca-modelo.js?v=4"></script>
 <script src="padeca-auth.js?v=4"></script>
 <script>
 UdesHeader.render('#udes-header-mount',{subtitulo:'Formulario de Seguimiento - Plan de Trabajo de Decanatura 2026',badge:'Fase 2 · Seguimiento'});
@@ -477,6 +487,62 @@ function borrarNotaUI(aid,actUid,notaId){
 function toggleActivaAcc(aid,v){var a=buscarAcc(aid);if(!a)return;a.activa=!!v;refrescar(aid);persistir(true);}
 function toggleActivaAct(aid,uid,v){var a=buscarAcc(aid);if(!a)return;var x=buscarAct(a,uid);if(!x)return;x.activa=!!v;refrescar(aid);persistir(true);}
 function moverAct(aid,uid,delta){var a=buscarAcc(aid);if(!a)return;if(M.moverActividadPorUid(a,uid,delta)){refrescar(aid);persistir(true);}}
+
+/* ---------- Importar respaldo JSON (suma notas, nunca borra) ---------- */
+function importarRespaldo(ev){
+  var f=ev.target.files[0];ev.target.value='';
+  if(!f||!planData)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var data;
+    try{data=JSON.parse(e.target.result);}catch(err){mostrarImportacion({ok:false,error:'El archivo no es un JSON válido.'},null,f.name);return;}
+    var r=M.fusionarPlan(planData,data);
+    mostrarImportacion(r,data,f.name);
+  };
+  reader.readAsText(f);
+}
+
+function cerrarImportacion(){var o=document.getElementById('imp-overlay');if(o)o.remove();}
+
+function mostrarImportacion(r,data,nombre){
+  cerrarImportacion();
+  var o=document.createElement('div');o.id='imp-overlay';o.className='imp-overlay';
+  var html='<div class="imp-box"><h3>Importar respaldo</h3><div style="color:#777;font-size:11px;margin-bottom:8px">Archivo: '+esc(nombre)+'</div>';
+  if(!r.ok){
+    html+='<div class="imp-aviso" style="background:#FDE8E8;border-color:#F5A6A6">'+esc(r.error)+'</div><div class="imp-btns"><button class="tbtn tbtn-sec" onclick="cerrarImportacion()">Cerrar</button></div></div>';
+  }else{
+    var s=r.resumen;
+    if(!s.total){
+      html+='<p>No hay nada nuevo para importar: el plan ya contiene todas las notas de este respaldo.</p>'+
+        (s.accionesNoEncontradas||s.actividadesNoEncontradas?'<div class="imp-aviso">'+s.accionesNoEncontradas+' acciones y '+s.actividadesNoEncontradas+' actividades del respaldo no existen en el plan y se ignoraron.</div>':'')+
+        '<div class="imp-btns"><button class="tbtn tbtn-sec" onclick="cerrarImportacion()">Cerrar</button></div></div>';
+    }else{
+      html+='<p>Se <strong>agregarán</strong> (no se borra ni se cambia nada existente):</p><ul>'+
+        '<li><strong>'+s.notasAccion+'</strong> notas de acción</li><li><strong>'+s.notasActividad+'</strong> notas de actividad</li>'+
+        (s.auditorias?'<li><strong>'+s.auditorias+'</strong> veredictos de auditoría que faltaban</li>':'')+'</ul>'+
+        '<div class="imp-aviso">Avance anual: <strong>'+M.avanceGlobal(planData)+'% → '+M.avanceGlobal(r.plan)+'%</strong>. Revise que el respaldo sea el más reciente: un respaldo viejo suma notas antiguas al historial (no cambia el estado vigente).</div>'+
+        (s.accionesNoEncontradas||s.actividadesNoEncontradas?'<div class="imp-aviso">'+s.accionesNoEncontradas+' acciones y '+s.actividadesNoEncontradas+' actividades del respaldo no existen en el plan y se ignoran.</div>':'')+
+        '<table class="imp-tabla"><tr><th>Acción</th><th>Notas acción</th><th>Notas actividad</th><th>Avance</th></tr>'+
+        s.porAccion.map(function(x){return '<tr><td>'+esc(x.id)+'</td><td>+'+x.notasAccion+'</td><td>+'+x.notasActividad+'</td><td>'+x.avanceAntes+'% → '+x.avanceDespues+'%</td></tr>';}).join('')+'</table>'+
+        '<div class="imp-btns"><button class="tbtn tbtn-sec" onclick="cerrarImportacion()">Cancelar</button><button class="tbtn tbtn-grn" id="imp-ok">Importar y guardar</button></div></div>';
+    }
+  }
+  o.innerHTML=html;
+  document.body.appendChild(o);
+  var ok=document.getElementById('imp-ok');
+  if(ok)ok.onclick=function(){aplicarImportacion(r);};
+}
+
+function aplicarImportacion(r){
+  try{localStorage.setItem('pf_pre_import_'+planData.facultad.codigo,JSON.stringify({ts:Date.now(),data:planData}));}catch(e){}
+  planData=r.plan;
+  cerrarImportacion();
+  renderDashboard();renderDims();
+  persistir(true);
+  var el=document.getElementById('status-msg');
+  el.textContent='Respaldo importado: '+r.resumen.total+' elementos agregados y guardados en línea.';
+  setTimeout(function(){el.textContent='';},6000);
+}
 
 function guardarAhora(){
   persistir(true);

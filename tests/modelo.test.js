@@ -160,6 +160,56 @@ test('avance por actividad: las actividades desactivadas no promedian', () => {
   assert.strictEqual(M.estadoAccion(acc), 'Completado');
 });
 
+test('importar respaldo: agrega las notas faltantes, no duplica y es idempotente', () => {
+  const actual = M.migrarPlan(planBase());
+  actual.facultad = {codigo: 'FCX'};
+  // El respaldo es el plan anterior con un seguimiento más avanzado en la acción 1 y la actividad 3
+  const respaldo = planBase();
+  respaldo.facultad = {codigo: 'FCX'};
+  respaldo.acciones[0].seguimientos.push({corte: 'Cierre anual 2026', fecha: '2026-12-01', avance: 90, estado: 'En proceso', notas: 'cierre', actividades: [
+    {id: 'd1_1_act_1', estado: 'Completado', linkEvidencia: 'http://e/1'}, {id: 'd1_1_act_2', estado: 'Completado', linkEvidencia: 'http://e/2'},
+    {id: 'd1_1_act_3', estado: 'Completado', linkEvidencia: 'http://e/3'}]});
+  const r = M.fusionarPlan(actual, respaldo);
+  assert.ok(r.ok, r.error);
+  assert.strictEqual(r.resumen.notasAccion, 1);          // solo la nota 'cierre' es nueva
+  assert.ok(r.resumen.notasActividad >= 1);              // la actividad 3 ahora trae enlace
+  assert.strictEqual(M.estadoActividad(r.plan.acciones[0].actividades[2]), 'Completado');
+  assert.strictEqual(M.linkVigente(r.plan.acciones[0].actividades[2]), 'http://e/3');
+  // el plan de entrada no se modifica
+  assert.strictEqual(actual.acciones[0].notas.length, 2);
+  // importar lo mismo otra vez no agrega nada
+  const r2 = M.fusionarPlan(r.plan, respaldo);
+  assert.strictEqual(r2.resumen.total, 0);
+});
+
+test('importar respaldo: una nota más antigua no pasa a ser la vigente', () => {
+  const actual = M.migrarPlan(planBase());
+  actual.facultad = {codigo: 'FCX'};
+  const vigenteAntes = M.ultimaNota(actual.acciones[0]).texto;
+  const respaldo = {facultad: {codigo: 'FCX'}, acciones: [{id: 'd1_1', uid: 'd1_1', activa: true, actividades: [], notas: [
+    {id: 'zz', fecha: '2026-01-05', estado: 'En proceso', avance: 10, texto: 'muy antigua', link: '', semestre: '', autor: ''}]}]};
+  const r = M.fusionarPlan(actual, respaldo);
+  assert.strictEqual(r.resumen.notasAccion, 1);
+  assert.strictEqual(r.plan.acciones[0].notas[0].texto, 'muy antigua');   // quedó al principio
+  assert.strictEqual(M.ultimaNota(r.plan.acciones[0]).texto, vigenteAntes); // la vigente no cambió
+});
+
+test('importar respaldo: rechaza otra facultad, no crea acciones nuevas ni toca Aplica 2026', () => {
+  const actual = M.migrarPlan(planBase());
+  actual.facultad = {codigo: 'FCX'};
+  assert.strictEqual(M.fusionarPlan(actual, {facultad: {codigo: 'FIT'}, acciones: []}).ok, false);
+  assert.strictEqual(M.fusionarPlan(actual, {nada: 1}).ok, false);
+  actual.acciones[0].actividades[1].activa = false;
+  const respaldo = {facultad: {codigo: 'FCX'}, acciones: [
+    {id: 'otra', uid: 'otra', activa: true, actividades: [], notas: [{id: 'q', fecha: '2026-06-01', estado: 'En proceso', texto: 'x'}]},
+    {id: 'd1_1', uid: 'd1_1', activa: true, actividades: [{id: 'd1_1_act_2', uid: 'd1_1_act_2', activa: true, notas: []}], notas: []}]};
+  const r = M.fusionarPlan(actual, respaldo);
+  assert.ok(r.ok);
+  assert.strictEqual(r.resumen.accionesNoEncontradas, 1);
+  assert.strictEqual(r.plan.acciones.length, actual.acciones.length);
+  assert.strictEqual(r.plan.acciones[0].actividades[1].activa, false);
+});
+
 const RUTA_FCAV = 'D:/Datos_PC/Descargas/Seguimiento_FCAV_Semestre_I_2026_reconstruido_2026-10-06.json';
 test('plan real de FCAV: no se pierde información al migrar', { skip: !fs.existsSync(RUTA_FCAV) }, () => {
   const real = JSON.parse(fs.readFileSync(RUTA_FCAV, 'utf8'));
