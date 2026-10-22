@@ -51,6 +51,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1a
 .act-resp{font-size:10px;color:#666;margin-bottom:4px}
 .act-link{font-size:10px;margin-bottom:6px}
 .act-link a{color:#185FA5}
+.nota-hist{font-size:10px;margin:4px 0 6px}.nota-hist summary{cursor:pointer;color:#185FA5;font-weight:700}.nh-item{background:#fff;border:1px solid #e2e9f2;border-radius:6px;padding:5px 8px;margin-top:4px;color:#444;line-height:1.5}
 .no-link{color:#e53e3e;font-style:italic}
 .vrow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
 .vbtn{border:none;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;opacity:.5;transition:.15s}
@@ -126,7 +127,8 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1a
 <script src="udes-branding.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="padeca-config.js"></script>
-<script src="padeca-auth.js?v=2"></script>
+<script src="padeca-modelo.js?v=1"></script>
+<script src="padeca-auth.js?v=3"></script>
 <script>
 UdesHeader.render('#udes-header-mount',{subtitulo:'Revisión y verificación de evidencias por el auditor institucional',badge:'Fase 3 · Auditoría'});
 var planData = null;
@@ -152,11 +154,7 @@ document.getElementById('finput').addEventListener('change', function(e) {
         document.getElementById('upload-err').textContent = 'Archivo inválido. Use el JSON de Fase 2.';
         return;
       }
-      planData = data;
-      planData.acciones.forEach(function(a) {
-        if (!a.actividades) a.actividades = [];
-        if (!a.seguimientos) a.seguimientos = [];
-      });
+      planData = window.PadecaModelo.migrarPlan(data);
       document.getElementById('upload-section').style.display = 'none';
       document.getElementById('app').style.display = 'block';
       document.getElementById('aud-fecha').value = new Date().toISOString().slice(0,10);
@@ -168,10 +166,8 @@ document.getElementById('finput').addEventListener('change', function(e) {
   reader.readAsText(file);
 });
 
-function getLastSeg(a) {
-  var s = a.seguimientos || [];
-  return s.length ? s[s.length-1] : null;
-}
+var M = window.PadecaModelo;
+function fesc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function getAud() {
   return {
@@ -181,43 +177,36 @@ function getAud() {
   };
 }
 
-function calcAuditPct(a, seg) {
-  var acts = a.actividades || [];
-  if (acts.length) {
-    var aceptadas = acts.filter(function(act) {
-      var as = (seg&&seg.actividades||[]).find(function(s){return s.id===act.id;});
-      return as && as.auditoria && as.auditoria.veredicto === 'Aceptado';
-    }).length;
-    return Math.round((aceptadas/acts.length)*100);
-  }
-  var audA = seg && seg.auditoriaAccion;
-  return (audA && audA.veredicto === 'Aceptado') ? 100 : 0;
+function aceptada(x) { return !!(x && x.auditoria && x.auditoria.veredicto === 'Aceptado'); }
+
+// % de actividades activas aceptadas por el auditor (o la aceptación de la acción si no hay actividades activas)
+function calcAuditPct(a) {
+  var acts = M.actividadesActivas(a);
+  if (acts.length) return Math.round((acts.filter(aceptada).length / acts.length) * 100);
+  return (a.auditoriaAccion && a.auditoriaAccion.veredicto === 'Aceptado') ? 100 : 0;
 }
 
-function calcSem(acs) {
-  if (!acs || !acs.length) return {cls:'sg', emoji:'⚫', pct:0, label:'Sin acciones'};
+// Las acciones y actividades que no aplican a 2026 no cuentan en el semáforo.
+function calcSem(todas) {
+  var acs = (todas || []).filter(M.esActiva);
+  if (!acs.length) return {cls:'sg', emoji:'⚫', pct:0, label:'Sin acciones'};
   var ok = acs.every(function(a) {
-    var seg = getLastSeg(a);
-    if (!seg || parseInt(seg.avance||0) < 100) return false;
-    var acts = a.actividades || [];
-    if (!acts.length) return seg.auditoriaAccion && seg.auditoriaAccion.veredicto === 'Aceptado';
-    return acts.every(function(act) {
-      var as = (seg.actividades||[]).find(function(s){return s.id===act.id;});
-      return as && as.auditoria && as.auditoria.veredicto === 'Aceptado';
-    });
+    if (M.avanceAccion(a) < 100) return false;
+    var acts = M.actividadesActivas(a);
+    if (!acts.length) return !!(a.auditoriaAccion && a.auditoriaAccion.veredicto === 'Aceptado');
+    return acts.every(aceptada);
   });
   if (ok) return {cls:'sv', emoji:'🟢', pct:100, label:'Cumplimiento total verificado'};
   var sum = acs.reduce(function(t,a){
-    var s = getLastSeg(a);
-    var avance = s ? parseInt(s.avance||0) : 0;
-    var auditPct = calcAuditPct(a, s);
-    return t + Math.round((avance+auditPct)/2);
+    return t + Math.round((M.avanceAccion(a) + calcAuditPct(a)) / 2);
   }, 0);
   var pct = Math.round(sum/acs.length);
   if (pct>=70) return {cls:'sa', emoji:'🟡', pct:pct, label:'Avance parcial - requiere atención'};
   if (pct>=40) return {cls:'sn', emoji:'🟠', pct:pct, label:'Avance bajo - en riesgo'};
   return {cls:'sr', emoji:'🔴', pct:pct, label:'Avance crítico'};
 }
+
+function completadas100(acs) { return acs.filter(function(a){ return M.esActiva(a) && M.avanceAccion(a) >= 100; }).length; }
 
 function setStatus(msg) {
   var el = document.getElementById('status-msg');
@@ -244,7 +233,7 @@ function renderDims() {
   Object.keys(DIMS).forEach(function(dk) {
     var acs = planData.acciones.filter(function(a){return a.dimension===dk;});
     var sem = calcSem(acs);
-    var comp = acs.filter(function(a){var s=getLastSeg(a);return s&&parseInt(s.avance||0)===100;}).length;
+    var comp = completadas100(acs);
     var card = document.createElement('div');
     card.className = 'dim-card';
     card.id = 'dim-'+dk;
@@ -253,7 +242,7 @@ function renderDims() {
         '<div class="dim-circle '+sem.cls+'">'+sem.emoji+'</div>'+
         '<div class="dim-info">'+
           '<div class="dim-name">'+DIMS[dk]+'</div>'+
-          '<div class="dim-stats" id="ds-'+dk+'">'+sem.pct+'% avance — '+comp+'/'+acs.length+' al 100%</div>'+
+          '<div class="dim-stats" id="ds-'+dk+'">'+sem.pct+'% avance — '+comp+'/'+acs.filter(M.esActiva).length+' al 100%</div>'+
         '</div>'+
         '<div class="dim-arrow" id="da-'+dk+'">▼</div>'+
       '</div>'+
@@ -272,6 +261,66 @@ function renderDims() {
   });
 }
 
+function evidenciaHtml(link) {
+  return link
+    ? '<a href="'+fesc(link)+'" target="_blank" rel="noopener"><strong>Evidencia:</strong> '+fesc(link.substring(0,50))+(link.length>50?'...':'')+' ↗</a>'
+    : '<span class="no-link">⚠ Sin link de evidencia</span>';
+}
+
+function notasResumenHtml(item) {
+  var ns = item.notas || [];
+  if (!ns.length) return '<div class="act-resp">Sin notas de avance.</div>';
+  var u = ns[ns.length-1];
+  return '<div class="act-resp">Último avance: <strong>'+fesc(u.estado)+'</strong>'+(typeof u.avance==='number'?' ('+u.avance+'%)':'')+(u.fecha?' — '+fesc(u.fecha):'')+(u.texto?': '+fesc(u.texto.substring(0,160))+(u.texto.length>160?'…':''):'')+'</div>'+
+    (ns.length>1 ? '<details class="nota-hist"><summary>Historial de notas ('+ns.length+')</summary>'+
+      ns.slice().reverse().map(function(n){
+        return '<div class="nh-item"><strong>'+fesc(n.fecha)+'</strong> · '+fesc(n.estado)+(typeof n.avance==='number'?' · '+n.avance+'%':'')+(n.semestre?' · Sem. '+fesc(n.semestre):'')+
+          (n.texto?'<br>'+fesc(n.texto):'')+(n.link?'<br><a href="'+fesc(n.link)+'" target="_blank" rel="noopener">'+fesc(n.link.substring(0,60))+'</a>':'')+'</div>';
+      }).join('')+'</details>' : '');
+}
+
+function bloqueAuditoriaHtml(idCom, aud) {
+  var ver = (aud && aud.veredicto) || 'Pendiente';
+  return '<div class="vrow">'+
+      '<button class="vbtn vbtn-ace'+(ver==='Aceptado'?' on':'')+'" data-ver="Aceptado">✔ Aceptar</button>'+
+      '<button class="vbtn vbtn-rec'+(ver==='Rechazado'?' on':'')+'" data-ver="Rechazado">✖ Rechazar</button>'+
+      '<button class="vbtn vbtn-pen'+(ver==='Pendiente'?' on':'')+'" data-ver="Pendiente">⏳ Pendiente</button>'+
+    '</div>'+
+    '<div class="act-comment"><textarea id="'+idCom+'" rows="2" placeholder="Comentario del auditor (requerido si rechaza)...">'+fesc((aud&&aud.comentario)||'')+'</textarea></div>'+
+    '<button class="btn-confirm">✔ Confirmar y guardar</button>';
+}
+
+// Conecta los botones de veredicto y de confirmación; guardar(veredicto, comentario) escribe en el ítem.
+function engancharAuditoria(aDiv, idCom, guardar, msg) {
+  aDiv.querySelectorAll('.vbtn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      aDiv.querySelectorAll('.vbtn').forEach(function(b){ b.classList.remove('on'); });
+      btn.classList.add('on');
+      var cfm = aDiv.querySelector('.btn-confirm');
+      cfm.style.background = '#d4700a';
+      cfm.textContent = '⚠ Confirmar cambio pendiente';
+    });
+  });
+  aDiv.querySelector('.btn-confirm').addEventListener('click', function() {
+    var cfm = this, ver2 = 'Pendiente';
+    aDiv.querySelectorAll('.vbtn').forEach(function(b){ if (b.classList.contains('on')) ver2 = b.dataset.ver; });
+    var com = document.getElementById(idCom);
+    guardar(ver2, com ? com.value.trim() : '');
+    var vc = {Aceptado:'#28a745',Rechazado:'#e53e3e',Pendiente:'#b7850a'};
+    cfm.style.background = vc[ver2]||'#185FA5';
+    cfm.textContent = '✔ Guardado — ' + ver2;
+    aDiv.style.borderLeftColor = vc[ver2]||'#b0c4de';
+    setTimeout(function(){ cfm.style.background = ''; cfm.textContent = '✔ Confirmar y guardar'; }, 2500);
+    recalcular();
+    setStatus(msg + ver2);
+  });
+}
+
+function nuevaAuditoria(ver, com) {
+  var aud = getAud();
+  return {veredicto: ver, comentario: com, auditor: aud.nombre, cargo: aud.cargo, fechaAuditoria: aud.fecha};
+}
+
 function renderAcciones(dk, acs, body) {
   body.innerHTML = '';
   if (!acs.length) {
@@ -279,146 +328,63 @@ function renderAcciones(dk, acs, body) {
     return;
   }
   acs.forEach(function(a) {
-    var seg = getLastSeg(a);
-    var pct = seg ? parseInt(seg.avance||0) : 0;
-    var stc = pct===100?'#28a745':pct>=70?'#ffc107':pct>=40?'#fd7e14':'#e53e3e';
+    var activa = M.esActiva(a);
+    var pct = activa ? M.avanceAccion(a) : 0;
+    var est = activa ? M.estadoAccion(a) : 'No aplica 2026';
+    var stc = !activa ? '#9aa8b8' : pct===100?'#28a745':pct>=70?'#ffc107':pct>=40?'#fd7e14':'#e53e3e';
     var div = document.createElement('div');
     div.className = 'ac-card';
-    div.id = 'ac-'+a.id;
+    div.id = 'ac-'+a.uid;
+    if (!activa) div.style.opacity = '.6';
     div.innerHTML =
       '<div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px">'+
-        '<div class="ac-title">'+(a.accion||a.descripcion||'Acción').substring(0,90)+'</div>'+
-        '<span style="flex-shrink:0;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:'+stc+'22;color:'+stc+';border:1px solid '+stc+'">'+(seg?seg.estado||'':'Sin seg.')+' '+pct+'%</span>'+
+        '<div class="ac-title">'+fesc((a.accion||a.descripcion||'Acción').substring(0,90))+'</div>'+
+        '<span style="flex-shrink:0;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:'+stc+'22;color:'+stc+';border:1px solid '+stc+'">'+fesc(est)+(activa?' '+pct+'%':'')+'</span>'+
       '</div>'+
-      (a.meta&&a.meta!=='Por definir'?'<div class="ac-meta">Meta: '+a.meta+'</div>':'')+
+      (a.meta&&a.meta!=='Por definir'?'<div class="ac-meta">Meta: '+fesc(a.meta)+'</div>':'')+
       '<div class="ac-progress"><div class="ac-fill" style="width:'+pct+'%;background:'+stc+'"></div></div>';
 
-    var acts = a.actividades || [];
-    if (seg && acts.length) {
-      acts.forEach(function(act) {
-        var actSeg = (seg.actividades||[]).find(function(s){return s.id===act.id;}) || {};
-        var aud2 = actSeg.auditoria || {};
-        var ver = aud2.veredicto || 'Pendiente';
-        var link = actSeg.linkEvidencia || '';
+    if (!activa) {
+      div.innerHTML += '<div class="act-resp" style="font-style:italic;margin-top:6px">No aplica a 2026: excluida del avance y de la auditoría.</div>';
+      body.appendChild(div);
+      return;
+    }
 
+    var acts = a.actividades || [];
+    var activas = M.actividadesActivas(a);
+    if ((a.notas||[]).length) div.insertAdjacentHTML('beforeend', '<div style="margin-top:6px">'+notasResumenHtml(a)+'</div>');
+
+    if (activas.length) {
+      acts.forEach(function(act) {
         var aDiv = document.createElement('div');
         aDiv.className = 'act-item';
-
-        // Build innerHTML (no onclick strings)
+        if (!M.esActiva(act)) {
+          aDiv.style.opacity = '.55';
+          aDiv.innerHTML = '<div class="act-desc">'+fesc(act.descripcion)+'</div><div class="act-resp">No aplica a 2026.</div>';
+          div.appendChild(aDiv);
+          return;
+        }
+        var idCom = 'com-'+act.uid;
         aDiv.innerHTML =
-          '<div class="act-desc">'+act.descripcion+'</div>'+
-          '<div class="act-resp">Resp: '+act.responsable+(act.fecha?' | Fecha: '+act.fecha:'')+'</div>'+
-          '<div class="act-link">'+(link?'<a href="'+link+'" target="_blank" rel="noopener"><strong>Evidencia:</strong> '+link.substring(0,50)+(link.length>50?'...':'')+' ↗</a>':'<span class="no-link">⚠ Sin link de evidencia</span>')+'</div>'+
-          '<div class="vrow">'+
-            '<button class="vbtn vbtn-ace'+(ver==='Aceptado'?' on':'')+'" data-ver="Aceptado">✔ Aceptar</button>'+
-            '<button class="vbtn vbtn-rec'+(ver==='Rechazado'?' on':'')+'" data-ver="Rechazado">✖ Rechazar</button>'+
-            '<button class="vbtn vbtn-pen'+(ver==='Pendiente'?' on':'')+'" data-ver="Pendiente">⏳ Pendiente</button>'+
-          '</div>'+
-          '<div class="act-comment"><textarea id="com-'+act.id+'" rows="2" placeholder="Comentario del auditor (requerido si rechaza)...">'+(aud2.comentario||'')+'</textarea></div>'+
-          '<button class="btn-confirm">✔ Confirmar y guardar</button>';
-
-        // Wire veredicto buttons via event listeners
-        aDiv.querySelectorAll('.vbtn').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            aDiv.querySelectorAll('.vbtn').forEach(function(b){ b.classList.remove('on'); });
-            btn.classList.add('on');
-            var cfm = aDiv.querySelector('.btn-confirm');
-            cfm.style.background = '#d4700a';
-            cfm.textContent = '⚠ Confirmar cambio pendiente';
-          });
-        });
-
-        // Wire confirm button
-        aDiv.querySelector('.btn-confirm').addEventListener('click', function() {
-          var cfm = this;
-          var ver2 = 'Pendiente';
-          aDiv.querySelectorAll('.vbtn').forEach(function(b){
-            if (b.classList.contains('on')) ver2 = b.dataset.ver;
-          });
-          var com = document.getElementById('com-'+act.id);
-          var aud3 = getAud();
-          if (!seg.actividades) seg.actividades = [];
-          var aS = seg.actividades.find(function(s){return s.id===act.id;});
-          if (!aS) { aS={id:act.id}; seg.actividades.push(aS); }
-          aS.auditoria = {
-            veredicto: ver2,
-            comentario: com ? com.value.trim() : '',
-            auditor: aud3.nombre,
-            cargo: aud3.cargo,
-            fechaAuditoria: aud3.fecha
-          };
-          // Visual feedback
-          var vc = {Aceptado:'#28a745',Rechazado:'#e53e3e',Pendiente:'#b7850a'};
-          cfm.style.background = vc[ver2]||'#185FA5';
-          cfm.textContent = '✔ Guardado — ' + ver2;
-          aDiv.style.borderLeftColor = vc[ver2]||'#b0c4de';
-          setTimeout(function(){
-            cfm.style.background = '';
-            cfm.textContent = '✔ Confirmar y guardar';
-          }, 2500);
-          recalcular();
-          setStatus('Actividad confirmada: ' + ver2);
-        });
-
+          '<div class="act-desc">'+fesc(act.descripcion)+'</div>'+
+          '<div class="act-resp">Resp: '+fesc(act.responsable)+(act.fecha?' | Fecha: '+fesc(act.fecha):'')+'</div>'+
+          notasResumenHtml(act)+
+          '<div class="act-link">'+evidenciaHtml(M.linkVigente(act))+'</div>'+
+          bloqueAuditoriaHtml(idCom, act.auditoria);
+        engancharAuditoria(aDiv, idCom, function(ver, com){ act.auditoria = nuevaAuditoria(ver, com); }, 'Actividad confirmada: ');
         div.appendChild(aDiv);
       });
-    } else if (!seg) {
+    } else if (!(a.notas||[]).length) {
       div.innerHTML += '<div style="font-size:11px;color:#e53e3e;margin-top:6px">Sin seguimiento registrado por el decano.</div>';
     } else {
-      var audA = seg.auditoriaAccion || {};
-      var verA = audA.veredicto || 'Pendiente';
-      var linkA = seg.linkEvidenciaAccion || '';
-
+      var idComA = 'com-acc-'+a.uid;
       var aDiv2 = document.createElement('div');
       aDiv2.className = 'act-item';
       aDiv2.innerHTML =
-        '<div class="act-desc" style="font-style:italic;color:#888">Esta acción no tiene actividades registradas — evidencia a nivel de acción</div>'+
-        '<div class="act-link">'+(linkA?'<a href="'+linkA+'" target="_blank" rel="noopener"><strong>Evidencia:</strong> '+linkA.substring(0,50)+(linkA.length>50?'...':'')+' ↗</a>':'<span class="no-link">⚠ Sin link de evidencia</span>')+'</div>'+
-        '<div class="vrow">'+
-          '<button class="vbtn vbtn-ace'+(verA==='Aceptado'?' on':'')+'" data-ver="Aceptado">✔ Aceptar</button>'+
-          '<button class="vbtn vbtn-rec'+(verA==='Rechazado'?' on':'')+'" data-ver="Rechazado">✖ Rechazar</button>'+
-          '<button class="vbtn vbtn-pen'+(verA==='Pendiente'?' on':'')+'" data-ver="Pendiente">⏳ Pendiente</button>'+
-        '</div>'+
-        '<div class="act-comment"><textarea id="com-acc-'+a.id+'" rows="2" placeholder="Comentario del auditor (requerido si rechaza)...">'+(audA.comentario||'')+'</textarea></div>'+
-        '<button class="btn-confirm">✔ Confirmar y guardar</button>';
-
-      aDiv2.querySelectorAll('.vbtn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          aDiv2.querySelectorAll('.vbtn').forEach(function(b){ b.classList.remove('on'); });
-          btn.classList.add('on');
-          var cfm = aDiv2.querySelector('.btn-confirm');
-          cfm.style.background = '#d4700a';
-          cfm.textContent = '⚠ Confirmar cambio pendiente';
-        });
-      });
-
-      aDiv2.querySelector('.btn-confirm').addEventListener('click', function() {
-        var cfm = this;
-        var ver2 = 'Pendiente';
-        aDiv2.querySelectorAll('.vbtn').forEach(function(b){
-          if (b.classList.contains('on')) ver2 = b.dataset.ver;
-        });
-        var com = document.getElementById('com-acc-'+a.id);
-        var aud3 = getAud();
-        seg.auditoriaAccion = {
-          veredicto: ver2,
-          comentario: com ? com.value.trim() : '',
-          auditor: aud3.nombre,
-          cargo: aud3.cargo,
-          fechaAuditoria: aud3.fecha
-        };
-        var vc = {Aceptado:'#28a745',Rechazado:'#e53e3e',Pendiente:'#b7850a'};
-        cfm.style.background = vc[ver2]||'#185FA5';
-        cfm.textContent = '✔ Guardado — ' + ver2;
-        aDiv2.style.borderLeftColor = vc[ver2]||'#b0c4de';
-        setTimeout(function(){
-          cfm.style.background = '';
-          cfm.textContent = '✔ Confirmar y guardar';
-        }, 2500);
-        recalcular();
-        setStatus('Acción confirmada: ' + ver2);
-      });
-
+        '<div class="act-desc" style="font-style:italic;color:#888">'+(acts.length?'Todas las actividades están desactivadas':'Esta acción no tiene actividades registradas')+' — evidencia a nivel de acción</div>'+
+        '<div class="act-link">'+evidenciaHtml(M.linkVigente(a))+'</div>'+
+        bloqueAuditoriaHtml(idComA, a.auditoriaAccion);
+      engancharAuditoria(aDiv2, idComA, function(ver, com){ a.auditoriaAccion = nuevaAuditoria(ver, com); }, 'Acción confirmada: ');
       div.appendChild(aDiv2);
     }
     body.appendChild(div);
@@ -435,79 +401,40 @@ function recalcular() {
     var circ = hdr.querySelector('.dim-circle');
     if (circ) { circ.className='dim-circle '+sem.cls; circ.textContent=sem.emoji; }
     var stats = document.getElementById('ds-'+dk);
-    if (stats) {
-      var comp=acs.filter(function(a){var s=getLastSeg(a);return s&&parseInt(s.avance||0)===100;}).length;
-      stats.textContent = sem.pct+'% avance — '+comp+'/'+acs.length+' al 100%';
-    }
+    if (stats) stats.textContent = sem.pct+'% avance — '+completadas100(acs)+'/'+acs.filter(M.esActiva).length+' al 100%';
     acs.forEach(function(a) {
-      var card = document.getElementById('ac-'+a.id);
+      var card = document.getElementById('ac-'+a.uid);
       if (!card) return;
-      var seg = getLastSeg(a);
-      var acts = a.actividades||[];
+      var acts = M.actividadesActivas(a);
       if (!acts.length) return;
-      var hayRec = acts.some(function(act){
-        var as=(seg&&seg.actividades||[]).find(function(s){return s.id===act.id;});
-        return as&&as.auditoria&&as.auditoria.veredicto==='Rechazado';
-      });
-      var todoAce = acts.every(function(act){
-        var as=(seg&&seg.actividades||[]).find(function(s){return s.id===act.id;});
-        return as&&as.auditoria&&as.auditoria.veredicto==='Aceptado';
-      });
-      card.className = 'ac-card'+(hayRec?' rechazado':todoAce?' aceptado':'');
+      var hayRec = acts.some(function(x){ return x.auditoria && x.auditoria.veredicto === 'Rechazado'; });
+      card.className = 'ac-card'+(hayRec?' rechazado':acts.every(aceptada)?' aceptado':'');
     });
   });
 }
 
 function guardarTodo() {
   var aud = getAud();
-  planData.acciones.forEach(function(a) {
-    var seg = getLastSeg(a);
-    if (!seg) return;
-    if (!seg.actividades) seg.actividades = [];
-    (a.actividades||[]).forEach(function(act) {
-      var aDiv = document.querySelector('[id="com-'+act.id+'"]');
-      if (!aDiv) return; // not rendered yet - skip
-      var ver = 'Pendiente';
-      // Find parent act-item and check vbtn.on
-      var parent = aDiv.closest ? aDiv.closest('.act-item') : null;
-      if (parent) {
-        parent.querySelectorAll('.vbtn').forEach(function(b){
-          if (b.classList.contains('on')) ver = b.dataset.ver;
-        });
-      }
-      var aS = seg.actividades.find(function(s){return s.id===act.id;});
-      if (!aS) { aS={id:act.id}; seg.actividades.push(aS); }
-      if (!aS.auditoria || aS.auditoria.veredicto !== ver || aS.auditoria.comentario !== aDiv.value.trim()) {
-        aS.auditoria = {
-          veredicto: ver,
-          comentario: aDiv.value.trim(),
-          auditor: aud.nombre,
-          cargo: aud.cargo,
-          fechaAuditoria: aud.fecha
-        };
-      }
-    });
-    if (!(a.actividades||[]).length) {
-      var comAcc = document.querySelector('[id="com-acc-'+a.id+'"]');
-      if (comAcc) {
-        var verAcc = 'Pendiente';
-        var parentAcc = comAcc.closest ? comAcc.closest('.act-item') : null;
-        if (parentAcc) {
-          parentAcc.querySelectorAll('.vbtn').forEach(function(b){
-            if (b.classList.contains('on')) verAcc = b.dataset.ver;
-          });
-        }
-        if (!seg.auditoriaAccion || seg.auditoriaAccion.veredicto !== verAcc || seg.auditoriaAccion.comentario !== comAcc.value.trim()) {
-          seg.auditoriaAccion = {
-            veredicto: verAcc,
-            comentario: comAcc.value.trim(),
-            auditor: aud.nombre,
-            cargo: aud.cargo,
-            fechaAuditoria: aud.fecha
-          };
-        }
-      }
+  function leer(idCom) {
+    var ta = document.querySelector('[id="'+idCom+'"]');
+    if (!ta) return null;
+    var ver = 'Pendiente';
+    var parent = ta.closest ? ta.closest('.act-item') : null;
+    if (parent) parent.querySelectorAll('.vbtn').forEach(function(b){ if (b.classList.contains('on')) ver = b.dataset.ver; });
+    return {ver: ver, com: ta.value.trim()};
+  }
+  function aplicar(item, campo, idCom) {
+    var l = leer(idCom);
+    if (!l) return; // aún no se ha dibujado
+    var cur = item[campo];
+    if (!cur || cur.veredicto !== l.ver || cur.comentario !== l.com) {
+      item[campo] = {veredicto: l.ver, comentario: l.com, auditor: aud.nombre, cargo: aud.cargo, fechaAuditoria: aud.fecha};
     }
+  }
+  M.accionesActivas(planData).forEach(function(a) {
+    var acts = M.actividadesActivas(a);
+    if (acts.length) acts.forEach(function(act){ aplicar(act, 'auditoria', 'com-'+act.uid); });
+    else aplicar(a, 'auditoriaAccion', 'com-acc-'+a.uid);
   });
   planData.auditoria = {auditor:aud.nombre, cargo:aud.cargo, fecha:aud.fecha, exportado:new Date().toISOString()};
 }
@@ -610,24 +537,25 @@ function generarPDF() {
     curY += 10;
 
     acs.forEach(function(a) {
-      var seg = getLastSeg(a);
-      var pct = seg ? parseInt(seg.avance||0) : 0;
-      var stc = pct===100?[40,167,69]:pct>=70?[255,193,7]:pct>=40?[253,126,20]:[229,62,62];
+      var activa = M.esActiva(a);
+      var pct = activa ? M.avanceAccion(a) : 0;
+      var un = activa ? M.ultimaNota(a) : null;
 
       checkPage(doc, 12);
       doc.setFillColor(248,250,255); doc.rect(margin,curY,contentW,10,'F');
       doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(12,35,64);
       doc.text((a.accion||a.descripcion||'').substring(0,80), margin+3, curY+4);
       doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(100,100,100);
-      doc.text('Avance: '+pct+'%  |  Estado: '+(seg?seg.estado||'':'Sin seguimiento')+(seg&&seg.notas?' | Notas: '+seg.notas.substring(0,40):''), margin+3, curY+8);
+      doc.text(activa ? ('Avance: '+pct+'%  |  Estado: '+M.estadoAccion(a)+(un&&un.texto?' | Nota: '+un.texto.substring(0,40):'')) : 'No aplica a 2026', margin+3, curY+8);
       curY += 12;
+      if (!activa) return;
 
-      (a.actividades||[]).forEach(function(act) {
-        var actSeg = (seg&&seg.actividades||[]).find(function(s){return s.id===act.id;}) || {};
-        var aud2 = actSeg.auditoria || {};
+      var actsPdf = M.actividadesActivas(a);
+      actsPdf.forEach(function(act) {
+        var aud2 = act.auditoria || {};
         var ver = aud2.veredicto || 'Pendiente';
         var com = aud2.comentario || '';
-        var link = actSeg.linkEvidencia || 'Sin link';
+        var link = M.linkVigente(act) || 'Sin link';
         var vc = {Aceptado:[40,167,69], Rechazado:[229,62,62], Pendiente:[180,130,10]};
         var ac = vc[ver]||[150,150,150];
 
@@ -636,7 +564,7 @@ function generarPDF() {
         doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30);
         doc.text(act.descripcion.substring(0,72), margin+9, curY+3.5);
         doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(100,100,100);
-        doc.text('Resp: '+act.responsable+(act.fecha?' | Fecha: '+act.fecha:''), margin+9, curY+7);
+        doc.text('Resp: '+act.responsable+(act.fecha?' | Fecha: '+act.fecha:'')+' | Estado: '+M.estadoActividad(act), margin+9, curY+7);
         doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(ac[0],ac[1],ac[2]);
         doc.text('['+ver+']', margin+9, curY+11);
         doc.setTextColor(100,100,100); doc.setFont('helvetica','normal'); doc.setFontSize(6);
@@ -649,6 +577,15 @@ function generarPDF() {
           curY += 5;
         }
       });
+      if (!actsPdf.length) {
+        var audA = a.auditoriaAccion || {};
+        var verA = audA.veredicto || 'Pendiente';
+        checkPage(doc, 10);
+        doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100);
+        doc.text('Evidencia de la acción: '+(M.linkVigente(a)||'Sin link').substring(0,60)+'  ['+verA+']', margin+9, curY+3);
+        curY += 7;
+        if (audA.comentario) { doc.setFont('helvetica','normal'); doc.text('Comentario: '+audA.comentario.substring(0,85), margin+9, curY); curY += 5; }
+      }
       curY += 2;
     });
     curY += 4;
@@ -711,8 +648,7 @@ function cargarPlanDeSheets(fac){
     }
     try{
       var data=r.data;
-      data.acciones.forEach(function(a){if(!a.actividades)a.actividades=[];if(!a.seguimientos)a.seguimientos=[];});
-      planData=data;
+      planData=window.PadecaModelo.migrarPlan(data);
       document.getElementById('upload-section').style.display='none';
       document.getElementById('app').style.display='block';
       document.getElementById('aud-fecha').value=new Date().toISOString().slice(0,10);

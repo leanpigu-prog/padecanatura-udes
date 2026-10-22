@@ -24,15 +24,16 @@ URL base: `https://smnattxrjhqoqcvjgitf.supabase.co/functions/v1/api-planes`
 | `/planes` | Una fila por facultad: decano, fase, totales, version, ultima actualizacion |
 | `/acciones` | Una fila por accion, con el ultimo seguimiento (avance, estado, notas, veredicto) |
 | `/actividades` | Una fila por actividad, con estado, enlace de evidencia y veredicto del auditor |
-| `/seguimientos` | Historial completo de cortes por accion |
+| `/seguimientos` | Una fila por accion con el estado vigente (corte fijo `2026`); en planes anteriores al cambio, historial de cortes |
+| `/notas` | Historial de notas de avance (por accion y por actividad): fecha, estado, avance, semestre, texto, enlace y autor |
 
-Filtros opcionales: `facultad=FCAV`, `dimension=d1`, `corte=Semestre I 2026`, `formato=csv`.
+Filtros opcionales: `facultad=FCAV`, `dimension=d1`, `activas=1` (excluye acciones y actividades que no aplican a 2026), `formato=csv`, y `corte=` solo para planes con el modelo anterior.
 
 ```
 curl -H "x-api-key: CLAVE" "https://smnattxrjhqoqcvjgitf.supabase.co/functions/v1/api-planes/acciones?facultad=FCAV"
 ```
 
-En `/acciones` y `/actividades`, sin `corte`, el seguimiento mostrado es el ultimo guardado en la herramienta (el mismo criterio de Fase 2). Si una facultad tiene varios cortes, usar `corte=` para fijar uno. Cortes validos: `Semestre I 2026`, `Semestre II 2026`, `Cierre anual 2026`.
+El plan es anual 2026: ya no hay cortes. Estado, avance y enlace de cada accion y actividad son los de su **ultima nota**; el avance de una accion con actividades se calcula sobre las actividades activas (Completado = 1, En proceso = 0,5, Pendiente = 0). `/acciones` y `/actividades` traen `aplica_2026` (false si se desactivo) y `/actividades` trae `orden` (posicion en la secuencia). Si una facultad aun tiene el modelo anterior (cortes), la API sigue devolviendo su ultimo corte; `corte=` fija uno (`Semestre I 2026`, `Semestre II 2026`, `Cierre anual 2026`).
 
 Respuesta JSON: `{ "total": n, "datos": [ ... ] }`. Con `formato=csv` devuelve CSV UTF-8 con BOM (abre bien en Excel).
 

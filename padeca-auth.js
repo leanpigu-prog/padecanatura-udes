@@ -145,12 +145,14 @@ function marcarEstadoSync(texto, tipo, accion){
   b.className = tipo || '';
   b.style.display = texto ? 'flex' : 'none';
   b.textContent = texto || '';
-  if(accion){
+  b.dataset.tipo = tipo || '';
+  if(tipo === 'err') console.error('[padeca] ' + texto);
+  (Array.isArray(accion) ? accion : (accion ? [accion] : [])).forEach(a => {
     const btn = document.createElement('button');
-    btn.textContent = accion.texto;
-    btn.onclick = accion.fn;
+    btn.textContent = a.texto;
+    btn.onclick = a.fn;
     b.appendChild(btn);
-  }
+  });
 }
 
 function mostrarBloqueado(mensaje){
@@ -209,7 +211,7 @@ async function padecaIniciarConSesionActual(){
     mostrarBloqueado('Tu usuario no tiene un perfil asignado. Contacta a Planeación Institucional.');
     return;
   }
-  sesion = {usuario: perfil.usuario, facultad: perfil.facultad || '', rol: perfil.rol, nombre: perfil.nombre, email: ses.session.user.email};
+  sesion = {usuario: perfil.usuario, facultad: perfil.facultad || '', rol: perfil.rol, nombre: perfil.nombre, email: ses.session.user.email, uid: ses.session.user.id};
   padecaEntrar();
 }
 
@@ -290,6 +292,7 @@ async function cargarPlan(fac){
           if(loc && _nAcciones(loc) > 0){ data = loc; desdeLocal = true; }
         }catch(e){}
       }
+      if(data && window.PadecaModelo) data = window.PadecaModelo.migrarPlan(data);
       _estado[fac] = {cargado: true, version: vRemota, acciones: row ? row.total_acciones : 0, fase: row ? row.fase_actual : 'fase1'};
       padecaActualizarStepper();
       return {ok: true, found: !!row, data, version: vRemota, fase_actual: row ? row.fase_actual : null, decano: row ? row.decano : null, desdeLocal};
@@ -301,8 +304,10 @@ async function cargarPlan(fac){
   return {ok: false, found: false, error: ultimoError};
 }
 
-/* Programa el guardado (debounce). Nunca guarda si el plan no se cargó antes. */
-function guardarPlan(fac, fase, decano, planDataObj, cb){
+/* Programa el guardado. Nunca guarda si el plan no se cargó antes.
+   opciones.inmediato: guarda ya (acciones discretas: añadir nota, activar, reordenar);
+   por defecto espera DEBOUNCE_MS desde la última edición (escritura de texto). */
+function guardarPlan(fac, fase, decano, planDataObj, cb, opciones){
   if(!sb || !sesion) return;
   const est = _estado[fac];
   if(!est || !est.cargado){
@@ -319,7 +324,41 @@ function guardarPlan(fac, fase, decano, planDataObj, cb){
   _cola = {fac, fase, decano, data: planDataObj, cb};
   marcarEstadoSync('Cambios sin guardar…', 'warn');
   clearTimeout(_timer);
-  _timer = setTimeout(_enviarCola, DEBOUNCE_MS);
+  if(opciones && opciones.inmediato) _enviarCola();
+  else _timer = setTimeout(_enviarCola, DEBOUNCE_MS);
+}
+
+/* Reconcilia la versión local con la del servidor. Se usa cuando un envío "al salir"
+   (keepalive) pudo haber guardado sin que esta pestaña se enterara: si el servidor está en
+   la versión que esperamos (+1) y la guardó este mismo usuario, se adopta sin conflicto.
+   Devuelve {ok, remota} ; ok=false solo si otra persona o dispositivo guardó en medio. */
+async function _sincronizarVersion(fac){
+  const est = _estado[fac];
+  const {data: act, error} = await _conTimeout(
+    sb.from('planes').select('version,updated_by,updated_at').eq('facultad', fac).maybeSingle(), 15000);
+  if(error) throw new Error(error.message);
+  if(!act) return {ok: est.version === 0, remota: null};
+  if(act.version === est.version){ est.versionDesconocida = false; return {ok: true, remota: act}; }
+  const propio = sesion && act.updated_by && act.updated_by === sesion.uid;
+  if(act.version === est.version + 1 && propio && est.versionDesconocida){
+    est.version = act.version; est.versionDesconocida = false;
+    return {ok: true, remota: act};
+  }
+  return {ok: false, remota: act};
+}
+
+function _mostrarConflicto(job, remota){
+  marcarEstadoSync('Este plan fue modificado desde otro dispositivo o por otra persona (versión ' + (remota ? remota.version : '?') + '). Tus cambios siguen en este navegador.',
+    'err', [
+      {texto: 'Cargar la del servidor', fn: () => location.reload()},
+      {texto: 'Guardar la mía encima', fn: () => {
+        const est = _estado[job.fac];
+        if(remota) est.version = remota.version;
+        est.versionDesconocida = false;
+        _cola = _cola || job;
+        _enviarCola();
+      }}
+    ]);
 }
 
 function _enviarCola(){
@@ -331,6 +370,15 @@ function _enviarCola(){
     const est = _estado[job.fac];
     marcarEstadoSync('Guardando…', 'work');
     try{
+      if(est.versionDesconocida){
+        const s = await _sincronizarVersion(job.fac);
+        if(!s.ok){
+          _cola = _cola || job;
+          _mostrarConflicto(job, s.remota);
+          if(job.cb) job.cb(false);
+          return {ok: false, error: 'conflicto'};
+        }
+      }
       const fase = _rangoFase(est.fase) > _rangoFase(job.fase) ? est.fase : job.fase;
       let res;
       if(est.version === 0){
@@ -356,17 +404,18 @@ function _enviarCola(){
       }
       const fila = Array.isArray(res.data) ? res.data[0] : res.data;
       if(!fila){
-        const {data: act} = await sb.from('planes').select('version').eq('facultad', job.fac).maybeSingle();
-        if(act && act.version !== est.version){
-          marcarEstadoSync('Este plan se modificó desde otro dispositivo. Recarga para ver los cambios (tus cambios quedan guardados en este navegador).',
-            'err', {texto: 'Recargar', fn: () => location.reload()});
+        // 0 filas: la versión cambió (u otro permiso). Se consulta una vez antes de avisar.
+        const s = await _sincronizarVersion(job.fac);
+        if(s.remota && s.remota.version !== est.version){
+          _cola = _cola || job;
+          _mostrarConflicto(job, s.remota);
         }else{
           marcarEstadoSync('No se pudo guardar (sin permiso). Contacta a Planeación.', 'err');
         }
         if(job.cb) job.cb(false);
         return {ok: false, error: 'conflicto'};
       }
-      est.version = fila.version; est.acciones = fila.total_acciones; est.fase = fase;
+      est.version = fila.version; est.acciones = fila.total_acciones; est.fase = fase; est.versionDesconocida = false;
       if(!_cola) localStorage.removeItem('pf_pending_' + job.fac);
       else { const p = _leerPendiente(job.fac); if(p){ p.baseVersion = est.version; localStorage.setItem('pf_pending_' + job.fac, JSON.stringify(p)); } }
       const hh = new Date().toLocaleTimeString('es-CO', {hour: '2-digit', minute: '2-digit'});
@@ -376,7 +425,8 @@ function _enviarCola(){
       return {ok: true};
     }catch(e){
       _cola = _cola || job;
-      marcarEstadoSync('Sin conexión: tus cambios están en este navegador.', 'err', {texto: 'Reintentar', fn: () => _enviarCola()});
+      est.versionDesconocida = true;
+      marcarEstadoSync('Sin conexión o error de red (' + (e.message || e) + '): tus cambios están en este navegador.', 'err', {texto: 'Reintentar', fn: () => _enviarCola()});
       if(job.cb) job.cb(false);
       return {ok: false, error: e.message};
     }finally{
@@ -395,8 +445,16 @@ async function flushGuardado(){
   return r;
 }
 
-/* Al cerrar/ocultar la página, si quedó algo sin enviar se intenta con fetch keepalive
-   (límite ~64 KB). Si no cabe, queda en localStorage y se reenvía al volver a cargar. */
+/* Pestaña oculta (cambio de pestaña, minimizar, bloqueo de pantalla): se envía con el guardado
+   normal, que no tiene límite de tamaño y mantiene la versión sincronizada. */
+function _enviarAlOcultar(){
+  clearTimeout(_timer);
+  if(_cola) _enviarCola();
+}
+
+/* Cierre real de la página: lo único que sobrevive es fetch con keepalive (límite ~64 KB).
+   Ese envío sube la versión en el servidor sin que esta página se entere, por eso se marca
+   versionDesconocida: si la página se restaura (bfcache) se reconcilia antes de guardar. */
 function _enviarAlSalir(){
   const job = _cola;
   if(!job || !_token || !_cfg.url) return;
@@ -407,6 +465,7 @@ function _enviarAlSalir(){
   if(est.version === 0 || body.length > MAX_KEEPALIVE_BYTES) return;
   clearTimeout(_timer);
   _cola = null;
+  est.versionDesconocida = true;
   try{
     fetch(_cfg.url + '/rest/v1/planes?facultad=eq.' + encodeURIComponent(job.fac) + '&version=eq.' + est.version, {
       method: 'PATCH', keepalive: true,
@@ -416,7 +475,8 @@ function _enviarAlSalir(){
   }catch(e){}
 }
 window.addEventListener('pagehide', _enviarAlSalir);
-document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') _enviarAlSalir(); });
+window.addEventListener('pageshow', e => { if(e.persisted) Object.keys(_estado).forEach(f => { _estado[f].versionDesconocida = true; }); });
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') _enviarAlOcultar(); });
 
 /* ---------------- Menú entre fases ---------------- */
 

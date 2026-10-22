@@ -49,9 +49,39 @@ function autorizado(req: Request): string | null {
   return claves.get(k) ?? null;
 }
 
+// ---- Modelo de notas (plan anual 2026): estado/avance/enlace vigentes = última nota ----
 // deno-lint-ignore no-explicit-any
-function ultimoSeg(a: any, corte: string | null) {
-  const segs: any[] = Array.isArray(a.seguimientos) ? a.seguimientos : [];
+type Item = any;
+const PESO: Record<string, number> = { "Pendiente": 0, "En proceso": 0.5, "Completado": 1 };
+const esActiva = (x: Item) => !x || x.activa !== false;
+const ultimaNota = (x: Item) => (Array.isArray(x?.notas) && x.notas.length ? x.notas[x.notas.length - 1] : null);
+const estadoAct = (act: Item) => ultimaNota(act)?.estado ?? "Pendiente";
+function linkVigente(x: Item): string {
+  const n: Item[] = Array.isArray(x?.notas) ? x.notas : [];
+  for (let i = n.length - 1; i >= 0; i--) if (n[i].link) return n[i].link;
+  return "";
+}
+function avanceAccion(a: Item): number {
+  const acts: Item[] = (a.actividades ?? []).filter(esActiva);
+  if (acts.length) {
+    return Math.round((100 * acts.reduce((s, x) => s + (PESO[estadoAct(x)] ?? 0), 0)) / acts.length);
+  }
+  const n = ultimaNota(a);
+  return typeof n?.avance === "number" ? n.avance : 0;
+}
+function estadoAccion(a: Item): string {
+  const acts: Item[] = (a.actividades ?? []).filter(esActiva);
+  if (acts.length) {
+    const av = avanceAccion(a);
+    return av >= 100 ? "Completado" : av > 0 ? "En proceso" : (a.estadoInicial ?? "Pendiente");
+  }
+  return ultimaNota(a)?.estado ?? (a.estadoInicial ?? "Pendiente");
+}
+const modeloNotas = (a: Item) => Array.isArray(a.notas) && !Array.isArray(a.seguimientos);
+
+// Modelo anterior (cortes): último seguimiento, opcionalmente de un corte.
+function ultimoSeg(a: Item, corte: string | null) {
+  const segs: Item[] = Array.isArray(a.seguimientos) ? a.seguimientos : [];
   const pool = corte ? segs.filter((s) => s.corte === corte) : segs;
   return pool.length ? pool[pool.length - 1] : null;
 }
@@ -68,6 +98,7 @@ Deno.serve(async (req) => {
   const facultad = p.get("facultad")?.toUpperCase() ?? null;
   const dimension = p.get("dimension");
   const corte = p.get("corte");
+  const soloActivas = p.get("activas") === "1";
 
   if (facultad && !FACULTADES.includes(facultad)) {
     return json({ error: "facultad_invalida", validas: FACULTADES }, 400);
@@ -98,12 +129,15 @@ Deno.serve(async (req) => {
   const acciones: Record<string, unknown>[] = [];
   const actividades: Record<string, unknown>[] = [];
   const seguimientos: Record<string, unknown>[] = [];
+  const notas: Record<string, unknown>[] = [];
 
   for (const pl of planes ?? []) {
-    // deno-lint-ignore no-explicit-any
-    for (const a of (pl.data?.acciones ?? []) as any[]) {
+    for (const a of (pl.data?.acciones ?? []) as Item[]) {
       if (dimension && a.dimension !== dimension) continue;
-      const seg = ultimoSeg(a, corte);
+      if (soloActivas && !esActiva(a)) continue;
+      const nuevo = modeloNotas(a);
+      const seg = nuevo ? null : ultimoSeg(a, corte);
+      const un = nuevo ? ultimaNota(a) : null;
       acciones.push({
         facultad: pl.facultad,
         id: a.id,
@@ -118,44 +152,80 @@ Deno.serve(async (req) => {
         estado_inicial: a.estadoInicial,
         presupuesto_ordinario: !!a.presupuestoOrdinario,
         presupuesto_mejoramiento: !!a.presupuestoMejoramiento,
-        n_actividades: (a.actividades ?? []).length,
-        corte: seg?.corte ?? null,
-        avance: seg?.avance ?? null,
-        estado: seg?.estado ?? null,
-        notas: seg?.notas ?? null,
-        link_evidencia_accion: seg?.linkEvidenciaAccion ?? null,
-        veredicto_accion: seg?.auditoriaAccion?.veredicto ?? null,
+        aplica_2026: esActiva(a),
+        n_actividades: (a.actividades ?? []).filter((x: Item) => !soloActivas || esActiva(x)).length,
+        corte: nuevo ? "2026" : (seg?.corte ?? null),
+        avance: nuevo ? avanceAccion(a) : (seg?.avance ?? null),
+        estado: nuevo ? estadoAccion(a) : (seg?.estado ?? null),
+        notas: nuevo ? (un?.texto ?? null) : (seg?.notas ?? null),
+        link_evidencia_accion: nuevo ? (linkVigente(a) || null) : (seg?.linkEvidenciaAccion ?? null),
+        veredicto_accion: (nuevo ? a.auditoriaAccion : seg?.auditoriaAccion)?.veredicto ?? null,
       });
+      let orden = 0;
       for (const act of a.actividades ?? []) {
-        const as = (seg?.actividades ?? []).find((x: { id: string }) => x.id === act.id);
+        orden++;
+        if (soloActivas && !esActiva(act)) continue;
+        const as = nuevo ? null : (seg?.actividades ?? []).find((x: { id: string }) => x.id === act.id);
         actividades.push({
           facultad: pl.facultad,
           accion_id: a.id,
           id: act.id,
+          orden,
+          aplica_2026: esActiva(act),
           descripcion: act.descripcion,
           responsable: act.responsable,
           fecha: act.fecha,
-          corte: seg?.corte ?? null,
-          estado: as?.estado ?? null,
-          link_evidencia: as?.linkEvidencia ?? null,
-          veredicto: as?.auditoria?.veredicto ?? null,
-          comentario_auditor: as?.auditoria?.comentario ?? null,
+          corte: nuevo ? "2026" : (seg?.corte ?? null),
+          estado: nuevo ? estadoAct(act) : (as?.estado ?? null),
+          link_evidencia: nuevo ? (linkVigente(act) || null) : (as?.linkEvidencia ?? null),
+          veredicto: (nuevo ? act.auditoria : as?.auditoria)?.veredicto ?? null,
+          comentario_auditor: (nuevo ? act.auditoria : as?.auditoria)?.comentario ?? null,
         });
+        for (const n of nuevo ? (act.notas ?? []) : []) {
+          notas.push({
+            facultad: pl.facultad, accion_id: a.id, actividad_id: act.id, fecha: n.fecha ?? null,
+            estado: n.estado ?? null, avance: n.avance ?? null, semestre: n.semestre ?? null,
+            texto: n.texto ?? null, link: n.link ?? null, autor: n.autor ?? null,
+          });
+        }
       }
-      for (const s of a.seguimientos ?? []) {
-        if (corte && s.corte !== corte) continue;
+      if (nuevo) {
+        // Compatibilidad: una fila de "seguimiento" por acción con el estado vigente (corte fijo "2026").
         seguimientos.push({
           facultad: pl.facultad,
           accion_id: a.id,
-          corte: s.corte,
-          fecha: s.fecha ?? null,
-          avance: s.avance ?? null,
-          estado: s.estado ?? null,
-          notas: s.notas ?? null,
-          link_evidencia_accion: s.linkEvidenciaAccion ?? null,
-          veredicto_accion: s.auditoriaAccion?.veredicto ?? null,
-          comentario_auditor: s.auditoriaAccion?.comentario ?? null,
+          corte: "2026",
+          fecha: un?.fecha ?? null,
+          avance: avanceAccion(a),
+          estado: estadoAccion(a),
+          notas: un?.texto ?? null,
+          link_evidencia_accion: linkVigente(a) || null,
+          veredicto_accion: a.auditoriaAccion?.veredicto ?? null,
+          comentario_auditor: a.auditoriaAccion?.comentario ?? null,
         });
+        for (const n of a.notas ?? []) {
+          notas.push({
+            facultad: pl.facultad, accion_id: a.id, actividad_id: null, fecha: n.fecha ?? null,
+            estado: n.estado ?? null, avance: n.avance ?? null, semestre: n.semestre ?? null,
+            texto: n.texto ?? null, link: n.link ?? null, autor: n.autor ?? null,
+          });
+        }
+      } else {
+        for (const s of a.seguimientos ?? []) {
+          if (corte && s.corte !== corte) continue;
+          seguimientos.push({
+            facultad: pl.facultad,
+            accion_id: a.id,
+            corte: s.corte,
+            fecha: s.fecha ?? null,
+            avance: s.avance ?? null,
+            estado: s.estado ?? null,
+            notas: s.notas ?? null,
+            link_evidencia_accion: s.linkEvidenciaAccion ?? null,
+            veredicto_accion: s.auditoriaAccion?.veredicto ?? null,
+            comentario_auditor: s.auditoriaAccion?.comentario ?? null,
+          });
+        }
       }
     }
   }
@@ -163,5 +233,6 @@ Deno.serve(async (req) => {
   if (recurso === "acciones") return respuesta(acciones, formato);
   if (recurso === "actividades") return respuesta(actividades, formato);
   if (recurso === "seguimientos") return respuesta(seguimientos, formato);
-  return json({ error: "recurso_no_encontrado", recursos: ["planes", "acciones", "actividades", "seguimientos"] }, 404);
+  if (recurso === "notas") return respuesta(notas, formato);
+  return json({ error: "recurso_no_encontrado", recursos: ["planes", "acciones", "actividades", "seguimientos", "notas"] }, 404);
 });

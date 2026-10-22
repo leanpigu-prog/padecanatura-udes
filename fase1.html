@@ -88,6 +88,18 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#185FA5;box-sh
 .pres-btn{font-size:11px;color:#555;background:#fff;border:1.5px solid #d8e2ed;border-radius:6px;padding:6px 12px;cursor:pointer;font-weight:600;transition:all .15s}
 .pres-btn:hover{border-color:#185FA5;color:#185FA5}
 .pres-btn.activo{background:#185FA5;color:#fff;border-color:#185FA5}
+.act-item-num{gap:8px;flex-wrap:wrap}
+.act-n{flex:1;min-width:90px}
+.act-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.act-grip{cursor:grab;font-size:15px;color:#4A90D9;line-height:1;padding:0 4px;user-select:none}
+.act-item.dragging{opacity:.4}
+.act-item.inactiva{opacity:.65;background:#f1f4f8;border-left-color:#9aa8b8}
+.mvb{border:1px solid #b0ccee;background:#fff;color:#185FA5;border-radius:5px;font-size:10px;padding:2px 7px;cursor:pointer}
+.mvb:hover:not(:disabled){background:#185FA5;color:#fff}.mvb:disabled{opacity:.35;cursor:default}
+.aplica-sw{font-size:10px;font-weight:700;color:#555;display:inline-flex;align-items:center;gap:4px;cursor:pointer;text-transform:none;letter-spacing:0}
+.aplica-sw input{width:auto;accent-color:#185FA5}
+.anum{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.ab.inactiva{opacity:.7}
 </style>
 </head>
 <body>
@@ -143,7 +155,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#185FA5;box-sh
 <script src="udes-branding.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="padeca-config.js"></script>
-<script src="padeca-auth.js?v=2"></script>
+<script src="padeca-modelo.js?v=1"></script>
+<script src="padeca-auth.js?v=3"></script>
 <script>
 UdesHeader.render('#udes-header-mount',{subtitulo:'Plan de Trabajo Anual de Decanatura · Acciones correctivas 2026',badge:'Fase 1 · Planeación'});
 const FACULTADES={
@@ -237,9 +250,9 @@ function addAc(dim,prefill){
   const cont=document.getElementById('ac_'+dim);
   const em=cont.querySelector('.empty');if(em)em.remove();
   const div=document.createElement('div');
-  div.className='ab';div.id=dim+'_b_'+n;if(isPO)div._base=prefill;
+  div.className='ab';div.id=dim+'_b_'+n;if(isPO)div._base=prefill;div.dataset.uid=(isPO&&prefill.uid)||PadecaModelo.nuevoId('acc');
   div.innerHTML=
-    '<div class="anum">Acción '+n+' <button class="dbtn" onclick="delAc(\''+dim+'\','+n+')">eliminar</button></div>'+
+    '<div class="anum"><span>Acción '+n+'</span><span class="act-tools"><label class="aplica-sw"><input type="checkbox" id="'+dim+'_ap_'+n+'" checked onchange="this.closest(\'.ab\').classList.toggle(\'inactiva\',!this.checked)"> Aplica 2026</label><button class="dbtn" onclick="delAc(\''+dim+'\','+n+')">eliminar</button></span></div>'+
     '<div class="mf"><label class="fl">Descripción de la acción *</label><textarea id="'+dim+'_a_'+n+'" rows="2" placeholder="Describa la accion derivada del informe de gestión 2025...">'+ptxt+'</textarea></div>'+
     '<div class="mf"><label class="fl">Pilar estratégico PDI UDES 2024-2028</label><select id="'+dim+'_p_'+n+'" onchange="updBadge(\''+dim+'\','+n+')">'+pilarOpts(dim)+'</select><div id="'+dim+'_bdg_'+n+'" style="margin-top:5px;min-height:18px"></div></div>'+
     '<div class="mf"><label class="fl">Fuente presupuestal</label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><button type="button" id="'+dim+'_bpo_'+n+'" class="pres-btn" onclick="togglePres(this)">Presupuesto Ordinario</button><button type="button" id="'+dim+'_bpm_'+n+'" class="pres-btn" onclick="togglePres(this)">Presupuesto Plan de Mejoramiento y Consolidación</button></div></div>'+
@@ -256,6 +269,7 @@ function addAc(dim,prefill){
     '</div>';
   cont.appendChild(div);
   if(isPO){
+    if(prefill.activa===false){var apc=document.getElementById(dim+'_ap_'+n);if(apc){apc.checked=false;div.classList.add('inactiva');}}
     if(prefill.pilar&&prefill.pilar!=='No definido'){var ps=document.getElementById(dim+'_p_'+n);if(ps)ps.value=prefill.pilar;}
     updBadge(dim,n);
     if(prefill.responsable&&prefill.responsable!=='Por definir'){var ri=document.getElementById(dim+'_r_'+n);if(ri)ri.value=prefill.responsable;}
@@ -267,7 +281,7 @@ function addAc(dim,prefill){
     if(prefill.presupuestoMejoramiento){var bpm=document.getElementById(dim+'_bpm_'+n);if(bpm)bpm.classList.add('activo');}
     if(prefill.actividades&&prefill.actividades.length){
       prefill.actividades.forEach(function(act){
-        addActividad(acId);
+        addActividad(acId,act);
         var m=actCnt[acId];
         var de=document.getElementById('act_desc_'+acId+'_'+m);if(de)de.value=act.descripcion||'';
         var re=document.getElementById('act_resp_'+acId+'_'+m);if(re)re.value=act.responsable||'';
@@ -335,19 +349,58 @@ function cargarJsonExistente(data){
   setTimeout(function(){goTo(1);},200);
 }
 
-function addActividad(acId){
+function addActividad(acId,base){
   actCnt[acId]=(actCnt[acId]||0)+1;const m=actCnt[acId];
   const list=document.getElementById('act_list_'+acId);
   const empty=document.getElementById('act_empty_'+acId);
   if(empty)empty.style.display='none';
   const div=document.createElement('div');
   div.className='act-item';div.id='act_'+acId+'_'+m;
+  div._base=base||null;
+  div.dataset.uid=(base&&base.uid)||PadecaModelo.nuevoId('act');
   div.innerHTML=
-    '<div class="act-item-num">Actividad '+m+' <button class="dbtn" onclick="delActividad(\''+acId+'\','+m+')">eliminar</button></div>'+
+    '<div class="act-item-num"><span class="act-grip" title="Arrastre para cambiar el orden" onmousedown="this.closest(\'.act-item\').draggable=true">⠿</span><span class="act-n">Actividad</span><span class="act-tools">'+
+    '<button class="mvb" title="Subir" onclick="moverActividadUI(\''+acId+'\','+m+',-1)">▲</button>'+
+    '<button class="mvb" title="Bajar" onclick="moverActividadUI(\''+acId+'\','+m+',1)">▼</button>'+
+    '<button class="mvb" title="Insertar una actividad nueva debajo de esta" onclick="insertarActividadDebajo(\''+acId+'\','+m+')">＋ debajo</button>'+
+    '<label class="aplica-sw"><input type="checkbox" id="act_ap_'+acId+'_'+m+'" checked onchange="this.closest(\'.act-item\').classList.toggle(\'inactiva\',!this.checked)"> Aplica 2026</label>'+
+    '<button class="dbtn" onclick="delActividad(\''+acId+'\','+m+')">eliminar</button></span></div>'+
     '<div class="mf"><label class="fl" style="color:#3a6ea5">Descripción de la actividad *</label><textarea id="act_desc_'+acId+'_'+m+'" rows="2" placeholder="Describa la actividad concreta que se realizará para cumplir esta acción..."></textarea></div>'+
     '<div class="mf"><label class="fl" style="color:#3a6ea5">Responsable de la actividad</label><input type="text" id="act_resp_'+acId+'_'+m+'" placeholder="Puede ser distinto al responsable de la acción"></div>'+
     '<div class="mf"><label class="fl" style="color:#3a6ea5">Fecha límite de la actividad</label><input type="date" id="act_fecha_'+acId+'_'+m+'"></div>';
   list.appendChild(div);
+  if(base&&base.activa===false){const c=div.querySelector('input[type=checkbox]');if(c)c.checked=false;div.classList.add('inactiva');}
+  renumerarActividades(acId);
+  return div;
+}
+
+function renumerarActividades(acId){
+  const list=document.getElementById('act_list_'+acId);if(!list)return;
+  const items=list.querySelectorAll(':scope > .act-item');
+  items.forEach(function(it,i){
+    const n=it.querySelector('.act-n');if(n)n.textContent='Actividad '+(i+1);
+    const bt=it.querySelectorAll('.mvb');
+    if(bt[0])bt[0].disabled=(i===0);
+    if(bt[1])bt[1].disabled=(i===items.length-1);
+  });
+}
+
+function acIdDeItem(it){return it.parentNode.id.replace('act_list_','');}
+
+function moverActividadUI(acId,m,delta){
+  const it=document.getElementById('act_'+acId+'_'+m);if(!it)return;
+  const ref=delta<0?it.previousElementSibling:it.nextElementSibling;
+  if(!ref||!ref.classList.contains('act-item'))return;
+  if(delta<0)it.parentNode.insertBefore(it,ref);else it.parentNode.insertBefore(ref,it);
+  renumerarActividades(acId);
+}
+
+function insertarActividadDebajo(acId,m){
+  const ref=document.getElementById('act_'+acId+'_'+m);
+  const nueva=addActividad(acId);
+  if(ref&&ref.nextSibling!==nueva)ref.parentNode.insertBefore(nueva,ref.nextSibling);
+  renumerarActividades(acId);
+  const ta=nueva.querySelector('textarea');if(ta)ta.focus();
 }
 
 function delActividad(acId,m){
@@ -355,17 +408,50 @@ function delActividad(acId,m){
   const list=document.getElementById('act_list_'+acId);
   const empty=document.getElementById('act_empty_'+acId);
   if(!list.querySelector('.act-item')&&empty)empty.style.display='block';
+  renumerarActividades(acId);
 }
 
+// Arrastrar y soltar actividades (solo dentro de la misma acción). Con pantalla táctil se usan ▲ ▼.
+(function(){
+  let arrastrado=null;
+  document.addEventListener('dragstart',function(e){
+    const it=e.target.closest&&e.target.closest('.act-item');if(!it||!it.draggable)return;
+    arrastrado=it;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',it.id);it.classList.add('dragging');
+  });
+  document.addEventListener('dragover',function(e){
+    if(!arrastrado)return;
+    const it=e.target.closest&&e.target.closest('.act-item');
+    if(!it||it===arrastrado||it.parentNode!==arrastrado.parentNode)return;
+    e.preventDefault();
+    const r=it.getBoundingClientRect();
+    it.parentNode.insertBefore(arrastrado,(e.clientY-r.top)>r.height/2?it.nextSibling:it);
+  });
+  document.addEventListener('drop',function(e){if(arrastrado)e.preventDefault();});
+  document.addEventListener('dragend',function(){
+    if(!arrastrado)return;
+    arrastrado.classList.remove('dragging');arrastrado.draggable=false;
+    renumerarActividades(acIdDeItem(arrastrado));arrastrado=null;
+    if(currentFac)guardarBorrador();
+  });
+})();
+
 function getActividades(acId){
-  const res=[];const max=actCnt[acId]||0;
-  for(let m=1;m<=max;m++){
-    const el=document.getElementById('act_'+acId+'_'+m);if(!el)continue;
-    const desc=document.getElementById('act_desc_'+acId+'_'+m);
-    const resp=document.getElementById('act_resp_'+acId+'_'+m);
-    const fecha=document.getElementById('act_fecha_'+acId+'_'+m);
-    if(desc&&desc.value.trim()){res.push({id:acId+'_act_'+m,descripcion:desc.value.trim(),responsable:(resp?resp.value.trim():'')||'Por definir',fecha:(fecha?fecha.value:'')});}
-  }
+  const res=[];
+  const list=document.getElementById('act_list_'+acId);if(!list)return res;
+  list.querySelectorAll(':scope > .act-item').forEach(function(el){
+    const sufijo=el.id.slice(('act_'+acId+'_').length);
+    const desc=document.getElementById('act_desc_'+acId+'_'+sufijo);
+    const resp=document.getElementById('act_resp_'+acId+'_'+sufijo);
+    const fecha=document.getElementById('act_fecha_'+acId+'_'+sufijo);
+    const ap=document.getElementById('act_ap_'+acId+'_'+sufijo);
+    if(desc&&desc.value.trim()){
+      const o={id:acId+'_act_'+sufijo,uid:el.dataset.uid,activa:!ap||ap.checked,descripcion:desc.value.trim(),responsable:(resp?resp.value.trim():'')||'Por definir',fecha:(fecha?fecha.value:'')};
+      const b=el._base;
+      if(b)Object.keys(b).forEach(function(k){if(!(k in o))o[k]=b[k];});
+      if(!Array.isArray(o.notas))o.notas=[];
+      res.push(o);
+    }
+  });
   return res;
 }
 
@@ -385,8 +471,7 @@ function conExtras(bl,o){
   var b=bl._base;
   if(!b)return o;
   Object.keys(b).forEach(function(k){
-    if(k==='seguimientos'){if(Array.isArray(b.seguimientos)&&b.seguimientos.length)o.seguimientos=b.seguimientos;}
-    else if(!(k in o))o[k]=b[k];
+    if(!(k in o))o[k]=b[k];
   });
   return o;
 }
@@ -404,7 +489,7 @@ function getAcs(dim){
     if(ac&&ac.value.trim()){
       const acId=dim+'_'+i;
       var ebpo=document.getElementById(dim+'_bpo_'+i);var ebpm=document.getElementById(dim+'_bpm_'+i);
-      res.push(conExtras(bl,{id:acId,dimension:dim,dimensionNombre:dimNames[dims.indexOf(dim)],accion:ac.value.trim(),pilar:(document.getElementById(dim+'_p_'+i)||{}).value||'No definido',responsable:(document.getElementById(dim+'_r_'+i)||{}).value||'Por definir',fechaLimite:(document.getElementById(dim+'_f_'+i)||{}).value||'Por definir',recursos:(document.getElementById(dim+'_rc_'+i)||{}).value||'Por definir',meta:(document.getElementById(dim+'_meta_'+i)||{}).value||'Por definir',estadoInicial:getStatus(dim,i),presupuestoOrdinario:!!(ebpo&&ebpo.classList.contains('activo')),presupuestoMejoramiento:!!(ebpm&&ebpm.classList.contains('activo')),actividades:getActividades(acId),seguimientos:[]}));
+      res.push(conExtras(bl,{id:acId,uid:bl.dataset.uid,activa:!(document.getElementById(dim+'_ap_'+i)&&!document.getElementById(dim+'_ap_'+i).checked),dimension:dim,dimensionNombre:dimNames[dims.indexOf(dim)],accion:ac.value.trim(),pilar:(document.getElementById(dim+'_p_'+i)||{}).value||'No definido',responsable:(document.getElementById(dim+'_r_'+i)||{}).value||'Por definir',fechaLimite:(document.getElementById(dim+'_f_'+i)||{}).value||'Por definir',recursos:(document.getElementById(dim+'_rc_'+i)||{}).value||'Por definir',meta:(document.getElementById(dim+'_meta_'+i)||{}).value||'Por definir',estadoInicial:getStatus(dim,i),presupuestoOrdinario:!!(ebpo&&ebpo.classList.contains('activo')),presupuestoMejoramiento:!!(ebpm&&ebpm.classList.contains('activo')),actividades:getActividades(acId)}));
     }
   }
   return res;
@@ -429,7 +514,7 @@ function buildRes(){
     ac.forEach((a,j)=>{
       const ps=pilarStyle[a.pilar];const badge=ps?'<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:'+ps.bg+';color:'+ps.tc+'">PDI - '+a.pilar+'</span>':'';
       const stc=stColor[a.estadoInicial]||'#ccc';
-      const actsHtml=a.actividades.length>0?'<div style="margin-top:6px;padding:7px 10px;background:#EDF5FF;border-radius:6px;border-left:2px solid #4A90D9"><div style="font-size:9px;font-weight:700;color:#4A90D9;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">'+a.actividades.length+' actividad'+(a.actividades.length===1?'':'es')+'</div>'+a.actividades.map((act,ai)=>'<div style="font-size:11px;color:#333;margin-bottom:3px;padding-bottom:3px;border-bottom:1px dashed #c5d9ef">'+(ai+1)+'. '+act.descripcion+' <span style="color:#888">- '+act.responsable+(act.fecha?' | <span style="color:#5a85b5">'+act.fecha+'</span>':'')+'</span></div>').join('')+'</div>':'<div style="font-size:10px;color:#bbb;font-style:italic;margin-top:4px">Sin actividades registradas</div>';
+      const actsHtml=a.actividades.length>0?'<div style="margin-top:6px;padding:7px 10px;background:#EDF5FF;border-radius:6px;border-left:2px solid #4A90D9"><div style="font-size:9px;font-weight:700;color:#4A90D9;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">'+a.actividades.length+' actividad'+(a.actividades.length===1?'':'es')+'</div>'+a.actividades.map((act,ai)=>'<div style="font-size:11px;color:#333;margin-bottom:3px;padding-bottom:3px;border-bottom:1px dashed #c5d9ef">'+(ai+1)+'. '+act.descripcion+(act.activa===false?' <em style="color:#9aa8b8">(no aplica 2026)</em>':'')+' <span style="color:#888">- '+act.responsable+(act.fecha?' | <span style="color:#5a85b5">'+act.fecha+'</span>':'')+'</span></div>').join('')+'</div>':'<div style="font-size:10px;color:#bbb;font-style:italic;margin-top:4px">Sin actividades registradas</div>';
       html+='<div style="font-size:12px;background:#fff;border:1px solid #e2e9f2;border-left:3px solid #185FA5;border-radius:7px;padding:10px 12px;margin-bottom:7px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px"><div style="font-weight:700;color:#0C2340">'+(j+1)+'. '+a.accion+'</div><span style="flex-shrink:0;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:'+stc+'22;color:'+stc+';border:1px solid '+stc+'">'+a.estadoInicial+'</span></div>'+(badge?'<div style="margin-bottom:5px">'+badge+'</div>':'')+(a.meta!=='Por definir'?'<div style="font-size:11px;color:#444;margin-bottom:5px"><strong>Meta:</strong> '+a.meta+'</div>':'')+'<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#777;margin-bottom:4px"><span>'+a.responsable+'</span><span>'+a.fechaLimite+'</span><span>'+a.recursos+'</span></div>'+actsHtml+'</div>';
     });
     html+='</div>';
@@ -518,7 +603,7 @@ function generarPDF(){
           doc.setFillColor(247,251,255);doc.rect(margin+3,curY,contentW-3,4,'F');
           doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(74,144,217);doc.text('Act. '+(ai+1),margin+5,curY+3);curY+=5;
           doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(30,30,30);
-          doc.splitTextToSize(act.descripcion,contentW-12).forEach(function(l){checkPage(doc,4.5);doc.text(l,margin+8,curY);curY+=4.5;});
+          doc.splitTextToSize(act.descripcion+(act.activa===false?' (no aplica 2026)':''),contentW-12).forEach(function(l){checkPage(doc,4.5);doc.text(l,margin+8,curY);curY+=4.5;});
           doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(120,120,120);
           doc.text('Resp: '+act.responsable+(act.fecha?' | Fecha: '+act.fecha:''),margin+8,curY);curY+=5;
         });
