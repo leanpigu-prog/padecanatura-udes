@@ -137,7 +137,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1a
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="padeca-config.js"></script>
 <script src="padeca-modelo.js?v=5"></script>
-<script src="padeca-auth.js?v=4"></script>
+<script src="padeca-auth.js?v=5"></script>
 <script>
 UdesHeader.render('#udes-header-mount',{subtitulo:'Revisión y verificación de evidencias por el auditor institucional',badge:'Fase 3 · Auditoría'});
 var planData = null;
@@ -586,14 +586,15 @@ function generarPDF() {
         checkPage(doc, com?20:16);
         doc.setFillColor(ac[0],ac[1],ac[2]); doc.rect(margin+4,curY,3,8,'F');
         doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30);
-        doc.text(act.descripcion.substring(0,72), margin+9, curY+3.5);
+        doc.text(String(act.descripcion||'').replace(/\s+/g,' ').substring(0,72), margin+9, curY+3.5);
         doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(100,100,100);
         doc.text('Resp: '+act.responsable+(act.fecha?' | Fecha: '+act.fecha:'')+' | Estado: '+M.estadoActividad(act)+' ('+M.avanceActividad(act)+'%)', margin+9, curY+7);
         doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(ac[0],ac[1],ac[2]);
         doc.text('['+ver+']', margin+9, curY+11);
         doc.setTextColor(100,100,100); doc.setFont('helvetica','normal'); doc.setFontSize(6);
-        doc.text('Link: '+link.substring(0,58), margin+9, curY+15);
-        curY += 17;
+        curY += 15;
+        pdfImprimirEnlace(doc, 'Link:', link, margin+9, contentW-12, 2.6);
+        curY += 0.4;
         if (com) {
           checkPage(doc, 6);
           doc.setTextColor(80,80,80); doc.setFontSize(6);
@@ -606,8 +607,11 @@ function generarPDF() {
         var verA = audA.veredicto || 'Pendiente';
         checkPage(doc, 10);
         doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100);
-        doc.text('Evidencia de la acción: '+(M.linkVigente(a)||'Sin link').substring(0,60)+'  ['+verA+']', margin+9, curY+3);
-        curY += 7;
+        doc.text('Evidencia de la acción  ['+verA+']', margin+9, curY+3);
+        curY += 6;
+        doc.setFont('helvetica','normal'); doc.setFontSize(6);
+        pdfImprimirEnlace(doc, '', M.linkVigente(a)||'Sin link', margin+9, contentW-12, 2.6);
+        curY += 1.5;
         if (audA.comentario) { doc.setFont('helvetica','normal'); doc.text('Comentario: '+audA.comentario.substring(0,85), margin+9, curY); curY += 5; }
       }
       curY += 2;

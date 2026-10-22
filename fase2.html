@@ -224,7 +224,7 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="padeca-config.js"></script>
 <script src="padeca-modelo.js?v=5"></script>
-<script src="padeca-auth.js?v=4"></script>
+<script src="padeca-auth.js?v=5"></script>
 <script>
 UdesHeader.render('#udes-header-mount',{subtitulo:'Formulario de Seguimiento - Plan de Trabajo de Decanatura 2026',badge:'Fase 2 · Seguimiento'});
 var M=window.PadecaModelo;
@@ -647,7 +647,7 @@ function generarPDF(){
       var cab=n.fecha+' - '+n.estado+(typeof n.avance==='number'?' ('+n.avance+'%)':'')+(n.semestre?' - Sem. '+n.semestre:'');
       checkPage(doc,5);doc.setFont('helvetica','bold');doc.text(cab,x+2,curY);curY+=3.6;doc.setFont('helvetica','normal');
       if(n.texto)lineas(n.texto,x+2,contentW-(x-margin)-6,3.6);
-      if(n.link){checkPage(doc,5);doc.setTextColor(24,95,165);doc.text('Link: '+n.link.substring(0,70)+(n.link.length>70?'...':''),x+2,curY);curY+=3.6;doc.setTextColor(40,40,40);}
+      if(n.link){doc.setTextColor(24,95,165);pdfImprimirEnlace(doc,'Link:',n.link,x+2,contentW-(x-margin)-6,3.6);doc.setTextColor(40,40,40);}
     });
   }
   dims.forEach(function(d,i){
@@ -687,16 +687,14 @@ function generarPDF(){
           doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(100,100,100);
           doc.text('Estado: '+M.estadoActividad(x)+' ('+M.avanceActividad(x)+'%)',margin+4,curY);curY+=4;
           var lk=M.linkVigente(x);
-          if(lk){doc.setTextColor(24,95,165);doc.text('Link: '+lk.substring(0,50)+(lk.length>50?'...':''),margin+4,curY);}
-          else{doc.setTextColor(220,50,50);doc.text('Sin evidencia',margin+4,curY);}
-          curY+=4;
+          if(lk){doc.setTextColor(24,95,165);pdfImprimirEnlace(doc,'Link:',lk,margin+4,contentW-8,3.6);curY+=0.6;}
+          else{doc.setTextColor(220,50,50);doc.text('Sin evidencia',margin+4,curY);curY+=4;}
           notasPdf(x,'Notas de la actividad:',margin+4);
           curY+=2;
         });
       }else{
         var lka=M.linkVigente(a);checkPage(doc,6);doc.setFont('helvetica','bold');doc.setFontSize(6.5);
-        if(lka){doc.setTextColor(24,95,165);doc.text('Link: '+lka.substring(0,60)+(lka.length>60?'...':''),margin+4,curY);}else{doc.setTextColor(220,50,50);doc.text('Sin evidencia',margin+4,curY);}
-        curY+=5;
+        if(lka){doc.setTextColor(24,95,165);pdfImprimirEnlace(doc,'Link:',lka,margin+4,contentW-8,3.6);curY+=1.4;}else{doc.setTextColor(220,50,50);doc.text('Sin evidencia',margin+4,curY);curY+=5;}
       }
       notasPdf(a,'Notas de la acción:',margin+2);
       curY+=3;

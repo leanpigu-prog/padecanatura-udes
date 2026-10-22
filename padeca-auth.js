@@ -583,6 +583,29 @@ window.PadecaCarga = {
 /* Respaldo: junto con cada PDF se descarga también el JSON del plan, para poder recuperarlo
    si algún día se pierde algo. Se retrasa un instante para que el navegador no bloquee la
    segunda descarga (la primera vez puede pedir permiso para "descargar varios archivos"). */
+/* PDF: un enlace largo no tiene espacios y jsPDF no lo parte solo. Se corta por caracteres para
+   que quepa en `ancho` (mm) con la fuente actual y se imprime COMPLETO, en varios renglones si hace
+   falta, con un área clicable por renglón (si es una dirección http/https válida).
+   Usa las globales de cada página: curY y checkPage(doc, n). Avanza curY `paso` mm por renglón. */
+function pdfImprimirEnlace(doc, etiqueta, url, x, ancho, paso){
+  const texto = String(url || '');
+  const prefijo = etiqueta ? etiqueta + ' ' : '';
+  const lineas = [];
+  let act = prefijo;
+  for(const ch of texto){
+    if(act.length > prefijo.length - (lineas.length ? prefijo.length : 0) && doc.getTextWidth(act + ch) > ancho){ lineas.push(act); act = ch; }
+    else act += ch;
+  }
+  if(act) lineas.push(act);
+  const clicable = /^https?:\/\/\S+$/i.test(texto);
+  lineas.forEach(l => {
+    checkPage(doc, 5);
+    doc.text(l, x, curY);
+    if(clicable) doc.link(x, curY - 2.6, doc.getTextWidth(l), 3.4, {url: texto});
+    curY += paso;
+  });
+}
+
 /* Sello de fecha y hora local para los nombres de archivo: 2026-10-22_1531 */
 function padecaSello(){
   const d = new Date(), p = n => String(n).padStart(2, '0');
