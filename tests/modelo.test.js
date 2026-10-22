@@ -118,6 +118,21 @@ test('reordenar actividades conserva uid y notas; insertar un paso debajo', () =
   assert.strictEqual(M.estadoActividad(acc.actividades.find(a => a.uid === uids[0])), 'Completado');
 });
 
+test('un enlace pegado como texto de la nota pasa al campo de evidencia (solo si el texto es solo enlace)', () => {
+  const plan = {acciones: [{id: 'a', actividades: [], seguimientos: [
+    {corte: 'Semestre I 2026', fecha: '2026-10-06', avance: 100, estado: 'En proceso', notas: 'https://sharepoint.example/f/abc?e=1', actividades: []},
+    {corte: 'Semestre II 2026', fecha: '2026-10-07', avance: 50, estado: 'En proceso', notas: 'Ver https://x.y/z para detalles', actividades: []}
+  ]}]};
+  const p = M.migrarPlan(plan);
+  const [n1, n2] = p.acciones[0].notas;
+  assert.strictEqual(n1.link, 'https://sharepoint.example/f/abc?e=1');
+  assert.strictEqual(n1.texto, '');
+  assert.strictEqual(n2.link, '');
+  assert.strictEqual(n2.texto, 'Ver https://x.y/z para detalles');
+  assert.strictEqual(M.linkVigente(p.acciones[0]), 'https://sharepoint.example/f/abc?e=1');
+  assert.deepStrictEqual(M.migrarPlan(p), p);
+});
+
 const RUTA_FCAV = 'D:/Datos_PC/Descargas/Seguimiento_FCAV_Semestre_I_2026_reconstruido_2026-10-06.json';
 test('plan real de FCAV: no se pierde información al migrar', { skip: !fs.existsSync(RUTA_FCAV) }, () => {
   const real = JSON.parse(fs.readFileSync(RUTA_FCAV, 'utf8'));
@@ -127,7 +142,8 @@ test('plan real de FCAV: no se pierde información al migrar', { skip: !fs.exist
   assert.strictEqual(p.acciones.reduce((s, a) => s + nAct(a), 0), real.acciones.reduce((s, a) => s + nAct(a), 0));
   // Cada texto de notas y cada enlace de evidencia del original existe en el resultado.
   real.acciones.forEach((a, i) => {
-    const textos = new Set(p.acciones[i].notas.map(n => n.texto));
+    // el texto original debe seguir presente: como texto o, si era solo un enlace, como enlace de la nota
+    const textos = new Set(p.acciones[i].notas.flatMap(n => [n.texto, n.link]));
     (a.seguimientos || []).forEach(s => { if(s.notas) assert.ok(textos.has(s.notas), 'se perdió una nota en la acción ' + a.id); });
     const links = new Set(p.acciones[i].actividades.flatMap(x => x.notas.map(n => n.link)));
     (a.seguimientos || []).forEach(s => (s.actividades || []).forEach(sa => { if(sa.linkEvidencia) assert.ok(links.has(sa.linkEvidencia), 'se perdió un enlace en ' + sa.id); }));

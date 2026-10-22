@@ -151,6 +151,18 @@
 
   const _vacio = n => (n.estado === 'Pendiente' || !n.estado) && !n.avance && !n.texto && !n.link;
 
+  // Algunas personas pegaron el enlace de evidencia en el texto de la nota. Si el texto es solo
+  // un enlace (una o varias líneas) y la nota no tiene enlace propio, se pasa al campo de evidencia.
+  const _soloEnlaces = t => /^\s*(https?:\/\/\S+\s*)+$/i.test(String(t || ''));
+  function _repararEnlaceEnTexto(item){
+    (item.notas || []).forEach(n => {
+      if(!n.link && _soloEnlaces(n.texto)){
+        n.link = String(n.texto).trim().split(/\s+/)[0];
+        n.texto = String(n.texto).trim().split(/\s+/).slice(1).join(' ');
+      }
+    });
+  }
+
   function migrarPlan(planEntrada){
     if(!planEntrada || !Array.isArray(planEntrada.acciones)) return planEntrada;
     const plan = clonar(planEntrada);
@@ -186,6 +198,8 @@
         if(seg.auditoriaAccion) acc.auditoriaAccion = seg.auditoriaAccion;
       });
       delete acc.seguimientos;
+      _repararEnlaceEnTexto(acc);
+      acts.forEach(_repararEnlaceEnTexto);
     });
     if(plan.ultimoSeguimiento){
       plan.ultimaActualizacion = {fecha: plan.ultimoSeguimiento.fecha || ''};
