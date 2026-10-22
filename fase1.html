@@ -156,7 +156,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:#185FA5;box-sh
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="padeca-config.js"></script>
 <script src="padeca-modelo.js?v=2"></script>
-<script src="padeca-auth.js?v=3"></script>
+<script src="padeca-auth.js?v=4"></script>
 <script>
 UdesHeader.render('#udes-header-mount',{subtitulo:'Plan de Trabajo Anual de Decanatura · Acciones correctivas 2026',badge:'Fase 1 · Planeación'});
 const FACULTADES={
@@ -532,7 +532,7 @@ function descargarJSON(){
   const data=buildPlanData();
   const bl=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(bl);const a=document.createElement('a');
-  a.href=url;a.download='PlanTrabajo_'+currentFac+'_2026.json';a.click();URL.revokeObjectURL(url);
+  a.href=url;a.download='PlanTrabajo_'+currentFac+'_'+padecaSello()+'.json';a.click();URL.revokeObjectURL(url);
   document.getElementById('pdf-status').textContent='JSON descargado. Guárdelo para usarlo en el Formulario de Seguimiento (Fase 2).';
   setTimeout(()=>document.getElementById('pdf-status').textContent='',5000);
 }
@@ -550,7 +550,7 @@ function descargarTxt(){
     });
   });
   const bl=new Blob([txt],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(bl);const a=document.createElement('a');
-  a.href=url;a.download='PlanTrabajo_'+currentFac+'_2026.txt';a.click();URL.revokeObjectURL(url);
+  a.href=url;a.download='PlanTrabajo_'+currentFac+'_'+padecaSello()+'.txt';a.click();URL.revokeObjectURL(url);
 }
 
 let curY=0;const margin=14,pageH=297,pageW=210,contentW=pageW-margin*2;
@@ -618,8 +618,9 @@ function generarPDF(){
   doc.text('Firma: ___________________________________',margin,curY);curY+=8;doc.text('Nombre: ___________________________________',margin,curY);curY+=8;doc.text('Fecha: ___________________________________',margin,curY);
   var total=doc.getNumberOfPages();
   for(var p=1;p<=total;p++){doc.setPage(p);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,160,160);doc.text('Pag. '+p+'/'+total+' - Planeación Institucional - UDES - Fase 1: Planeación',margin,pageH-5);}
-  doc.save('PlanTrabajo_'+currentFac+'_2026.pdf');
-  descargarJsonRespaldo('PlanTrabajo_'+currentFac+'_2026',buildPlanData());
+  var nb='PlanTrabajo_'+currentFac+'_'+padecaSello();
+  doc.save(nb+'.pdf');
+  descargarJsonRespaldo(nb,buildPlanData());
   document.getElementById('pdf-status').textContent='PDF descargado. También se descargó el JSON de respaldo (el plan ya queda guardado en línea).';
   setTimeout(function(){document.getElementById('pdf-status').textContent='';},5000);
 }

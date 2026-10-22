@@ -201,7 +201,7 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="padeca-config.js"></script>
 <script src="padeca-modelo.js?v=2"></script>
-<script src="padeca-auth.js?v=3"></script>
+<script src="padeca-auth.js?v=4"></script>
 <script>
 UdesHeader.render('#udes-header-mount',{subtitulo:'Formulario de Seguimiento - Plan de Trabajo de Decanatura 2026',badge:'Fase 2 · Seguimiento'});
 var M=window.PadecaModelo;
@@ -474,7 +474,7 @@ function reiniciar(){
   document.getElementById('upload-error').textContent='';
 }
 
-function nombreBase(){return 'Seguimiento_'+(planData.facultad.codigo||'FAC')+'_2026';}
+function nombreBase(){return 'Seguimiento_'+(planData.facultad.codigo||'FAC')+'_'+padecaSello();}
 
 function descargarJSONAct(){
   var bl=new Blob([JSON.stringify(planData,null,2)],{type:'application/json'});
@@ -588,8 +588,9 @@ function generarPDF(){
   doc.text('Firma del Decano(a): ___________________________',margin,curY);curY+=8;doc.text('Fecha: ___________________________',margin,curY);
   var tp=doc.getNumberOfPages();
   for(var p=1;p<=tp;p++){doc.setPage(p);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,160,160);doc.text('Pag. '+p+'/'+tp+' - Planeación Institucional - UDES - Fase 2: Seguimiento - Plan anual 2026',margin,pageH-5);}
-  doc.save(nombreBase()+'.pdf');
-  descargarJsonRespaldo(nombreBase(),planData);
+  var nb=nombreBase();
+  doc.save(nb+'.pdf');
+  descargarJsonRespaldo(nb,planData);
   document.getElementById('status-msg').textContent='PDF de seguimiento y JSON de respaldo descargados correctamente.';
   setTimeout(function(){document.getElementById('status-msg').textContent='';},4000);
 }

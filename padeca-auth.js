@@ -583,6 +583,12 @@ window.PadecaCarga = {
 /* Respaldo: junto con cada PDF se descarga también el JSON del plan, para poder recuperarlo
    si algún día se pierde algo. Se retrasa un instante para que el navegador no bloquee la
    segunda descarga (la primera vez puede pedir permiso para "descargar varios archivos"). */
+/* Sello de fecha y hora local para los nombres de archivo: 2026-10-22_1531 */
+function padecaSello(){
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + '_' + p(d.getHours()) + p(d.getMinutes());
+}
+
 function descargarJsonRespaldo(nombreBase, obj){
   setTimeout(function(){
     try{
