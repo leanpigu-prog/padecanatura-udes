@@ -436,7 +436,7 @@ function agregarNotaUI(aid,actUid){
     if(estado==='Completado')avance=100;
     else if(avance>=100)estado='Completado';
   }
-  if(estado==='Completado'&&!link&&!M.linkVigente(item)){error('Para marcar Completado se requiere un enlace de evidencia.');var le=document.getElementById('nl-'+k);if(le)le.classList.add('error-field');return;}
+  if(estado==='Completado'&&!tieneActs&&!link&&!M.linkVigente(item)){error('Para marcar Completado se requiere un enlace de evidencia.');var le=document.getElementById('nl-'+k);if(le)le.classList.add('error-field');return;}
   if(!texto&&!link&&estado===estadoPrevio&&(avance===undefined||avance===M.avanceAccion(a))){error('Escriba una nota, un enlace o cambie el estado.');return;}
   M.agregarNota(item,{texto:texto,link:link,estado:estado,avance:avance,semestre:sem,autor:autorActual()});
   limpiarBorradores(k);
