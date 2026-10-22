@@ -141,6 +141,9 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 .nf-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:7px}
 .nf-foot{display:flex;align-items:center;gap:10px;margin-top:8px}
 .nf-msg{font-size:11px;font-weight:700}.nf-msg.err{color:#E24B4A}.nf-msg.ok{color:#28A745}
+.act-av{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#0C2340}
+.act-av-bar{display:inline-block;width:70px;height:6px;border-radius:4px;background:#e0e7ef;overflow:hidden}
+.act-av-bar span{display:block;height:100%}
 </style>
 </head>
 <body>
@@ -200,7 +203,7 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 <script src="udes-branding.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="padeca-config.js"></script>
-<script src="padeca-modelo.js?v=2"></script>
+<script src="padeca-modelo.js?v=3"></script>
 <script src="padeca-auth.js?v=4"></script>
 <script>
 UdesHeader.render('#udes-header-mount',{subtitulo:'Formulario de Seguimiento - Plan de Trabajo de Decanatura 2026',badge:'Fase 2 · Seguimiento'});
@@ -337,11 +340,27 @@ function formNotaHtml(aid,actUid,conEstado,conAvance,estadoActual,avanceActual){
   return '<div class="nota-form"><div class="nf-title">Añadir nota de avance</div>'+
     '<textarea class="draft" id="nt-'+k+'" rows="2" placeholder="Qué se hizo, obstáculos, observaciones..." oninput="borrador(this)"></textarea>'+
     '<div class="nf-row">'+
-    (conEstado?'<div><label class="fl">Estado</label><select class="draft" id="ne-'+k+'" onchange="borrador(this)">'+opts+'</select></div>':'')+
-    (conAvance?'<div><label class="fl">Avance <span id="pn-'+k+'">'+avanceActual+'%</span></label><input type="range" class="draft" min="0" max="100" step="5" value="'+avanceActual+'" id="np-'+k+'" oninput="document.getElementById(\'pn-'+k+'\').textContent=this.value+\'%\';borrador(this)"></div>':'')+
+    (conEstado?'<div><label class="fl">Estado</label><select class="draft" id="ne-'+k+'" onchange="sincEstadoAv(\''+k+'\',\'e\')">'+opts+'</select></div>':'')+
+    (conAvance?'<div><label class="fl">Avance <span id="pn-'+k+'">'+avanceActual+'%</span></label><input type="range" class="draft" min="0" max="100" step="5" value="'+avanceActual+'" id="np-'+k+'" oninput="sincEstadoAv(\''+k+'\',\'a\')"></div>':'')+
     '<div><label class="fl">Enlace de evidencia</label><input type="url" class="draft" id="nl-'+k+'" placeholder="https://drive.google.com/..." oninput="borrador(this)"></div>'+
     '<div><label class="fl">Semestre (opcional)</label><select class="draft" id="ns-'+k+'" onchange="borrador(this)"><option value="">—</option><option value="I">I</option><option value="II">II</option><option value="Anual">Anual</option></select></div>'+
     '</div><div class="nf-foot"><button class="tbtn tbtn-grn" onclick="agregarNotaUI(\''+aid+'\',\''+(actUid||'')+'\')">＋ Añadir nota</button><span class="nf-msg" id="nm-'+k+'"></span></div></div>';
+}
+
+// Estado y avance de una nota se mantienen coherentes: 0 = Pendiente, 1-99 = En proceso, 100 = Completado.
+function sincEstadoAv(k,origen){
+  var e=document.getElementById('ne-'+k),s=document.getElementById('np-'+k);
+  if(!e||!s)return;
+  if(origen==='a'){
+    var v=parseInt(s.value);
+    e.value=v>=100?'Completado':(v>0?'En proceso':'Pendiente');
+  }else{
+    if(e.value==='Completado')s.value=100;
+    else if(e.value==='Pendiente')s.value=0;
+    else if(parseInt(s.value)===0||parseInt(s.value)>=100)s.value=50;
+  }
+  var n=document.getElementById('pn-'+k);if(n)n.textContent=s.value+'%';
+  borrador(e);borrador(s);
 }
 
 function toggleHtml(chkId,activa,onch,txt){
@@ -358,8 +377,8 @@ function renderActividad(a,act,i){
     '<button class="mv" title="Bajar" '+(i===n-1?'disabled':'')+' onclick="moverAct(\''+aid+'\',\''+act.uid+'\',1)">▼</button>'+
     toggleHtml('ap-'+k,activa,'toggleActivaAct(\''+aid+'\',\''+act.uid+'\',this.checked)','Aplica 2026')+'</div>';
   var cuerpo=activa?
-    ('<div class="act-estado-line">'+badgeEstado(est)+(link?'<a class="ev-link" href="'+esc(link)+'" target="_blank" rel="noopener">✓ Evidencia registrada</a>':'<span class="ev-falta">Sin evidencia</span>')+'</div>'+
-     notasHtml(act,aid,act.uid)+formNotaHtml(aid,act.uid,true,false,est,0))
+    ('<div class="act-estado-line">'+badgeEstado(est)+'<span class="act-av"><span class="act-av-bar"><span style="width:'+M.avanceActividad(act)+'%;background:'+(stColor[est]||'#185FA5')+'"></span></span><strong>'+M.avanceActividad(act)+'%</strong></span>'+(link?'<a class="ev-link" href="'+esc(link)+'" target="_blank" rel="noopener">✓ Evidencia registrada</a>':'<span class="ev-falta">Sin evidencia</span>')+'</div>'+
+     notasHtml(act,aid,act.uid)+formNotaHtml(aid,act.uid,true,true,est,M.avanceActividad(act)))
     :'<div class="inact-msg">No aplica a 2026: no cuenta en el avance ni exige evidencia.</div>';
   return '<div class="act-f2-item'+(activa?'':' inactiva')+'" id="actcard-'+k+'">'+
     '<div class="act-f2-top"><div class="act-f2-num">Actividad '+(i+1)+'</div>'+ctrl+'</div>'+
@@ -430,14 +449,16 @@ function agregarNotaUI(aid,actUid){
   var estSel=document.getElementById('ne-'+k),avSel=document.getElementById('np-'+k);
   var tieneActs=!actUid&&M.actividadesActivas(a).length>0;
   var estadoPrevio=actUid?M.estadoActividad(item):M.estadoAccion(a);
+  var avancePrevio=actUid?M.avanceActividad(item):M.avanceAccion(a);
   var estado=estSel?estSel.value:estadoPrevio;
   var avance=avSel?parseInt(avSel.value):(tieneActs?M.avanceAccion(a):undefined);
   if(avSel){
     if(estado==='Completado')avance=100;
     else if(avance>=100)estado='Completado';
+    else if(avance>0&&estado==='Pendiente')estado='En proceso';
   }
   if(estado==='Completado'&&!tieneActs&&!link&&!M.linkVigente(item)){error('Para marcar Completado se requiere un enlace de evidencia.');var le=document.getElementById('nl-'+k);if(le)le.classList.add('error-field');return;}
-  if(!texto&&!link&&estado===estadoPrevio&&(avance===undefined||avance===M.avanceAccion(a))){error('Escriba una nota, un enlace o cambie el estado.');return;}
+  if(!texto&&!link&&estado===estadoPrevio&&(avance===undefined||avance===avancePrevio)){error('Escriba una nota, un enlace o cambie el estado o el avance.');return;}
   M.agregarNota(item,{texto:texto,link:link,estado:estado,avance:avance,semestre:sem,autor:autorActual()});
   limpiarBorradores(k);
   refrescar(aid);
@@ -566,7 +587,7 @@ function generarPDF(){
           if(!M.esActiva(x)){doc.setFont('helvetica','italic');doc.setTextColor(120,120,120);checkPage(doc,5);doc.text('No aplica a 2026.',margin+4,curY);curY+=5;return;}
           checkPage(doc,9);
           doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(100,100,100);
-          doc.text('Estado: '+M.estadoActividad(x),margin+4,curY);curY+=4;
+          doc.text('Estado: '+M.estadoActividad(x)+' ('+M.avanceActividad(x)+'%)',margin+4,curY);curY+=4;
           var lk=M.linkVigente(x);
           if(lk){doc.setTextColor(24,95,165);doc.text('Link: '+lk.substring(0,50)+(lk.length>50?'...':''),margin+4,curY);}
           else{doc.setTextColor(220,50,50);doc.text('Sin evidencia',margin+4,curY);}

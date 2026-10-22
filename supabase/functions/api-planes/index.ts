@@ -61,10 +61,16 @@ function linkVigente(x: Item): string {
   for (let i = n.length - 1; i >= 0; i--) if (n[i].link) return n[i].link;
   return "";
 }
+// Avance de una actividad: porcentaje de su última nota o, sin él, deducido del estado.
+function avanceActividad(act: Item): number {
+  const n = ultimaNota(act);
+  if (typeof n?.avance === "number") return Math.max(0, Math.min(100, n.avance));
+  return Math.round(100 * (PESO[estadoAct(act)] ?? 0));
+}
 function avanceAccion(a: Item): number {
   const acts: Item[] = (a.actividades ?? []).filter(esActiva);
   if (acts.length) {
-    return Math.round((100 * acts.reduce((s, x) => s + (PESO[estadoAct(x)] ?? 0), 0)) / acts.length);
+    return Math.round(acts.reduce((s, x) => s + avanceActividad(x), 0) / acts.length);
   }
   const n = ultimaNota(a);
   return typeof n?.avance === "number" ? n.avance : 0;
@@ -177,6 +183,7 @@ Deno.serve(async (req) => {
           fecha: act.fecha,
           corte: nuevo ? "2026" : (seg?.corte ?? null),
           estado: nuevo ? estadoAct(act) : (as?.estado ?? null),
+          avance: nuevo ? avanceActividad(act) : null,
           link_evidencia: nuevo ? (linkVigente(act) || null) : (as?.linkEvidencia ?? null),
           veredicto: (nuevo ? act.auditoria : as?.auditoria)?.veredicto ?? null,
           comentario_auditor: (nuevo ? act.auditoria : as?.auditoria)?.comentario ?? null,

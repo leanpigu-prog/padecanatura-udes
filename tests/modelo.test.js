@@ -133,6 +133,33 @@ test('un enlace pegado como texto de la nota pasa al campo de evidencia (solo si
   assert.deepStrictEqual(M.migrarPlan(p), p);
 });
 
+test('avance por actividad: usa el porcentaje de la última nota y, sin él, deduce del estado', () => {
+  const p = M.migrarPlan(planBase());
+  const [a1, a2, a3] = p.acciones[0].actividades;
+  // notas migradas sin porcentaje: Completado=100, En proceso=50, Pendiente=0
+  assert.strictEqual(M.avanceActividad(a1), 100);
+  assert.strictEqual(M.avanceActividad(a3), 0);
+  M.agregarNota(a3, {estado: 'En proceso', avance: 30, texto: 'va por el 30 %'});
+  assert.strictEqual(M.avanceActividad(a3), 30);
+  M.agregarNota(a2, {estado: 'En proceso', avance: 70});
+  // acción: promedio de (100 + 70 + 30) / 3 = 67
+  assert.strictEqual(M.avanceAccion(p.acciones[0]), 67);
+  M.agregarNota(a3, {estado: 'En proceso', avance: 90});
+  assert.strictEqual(M.avanceAccion(p.acciones[0]), 87);
+});
+
+test('avance por actividad: las actividades desactivadas no promedian', () => {
+  const p = M.migrarPlan(planBase());
+  const acc = p.acciones[0];
+  M.agregarNota(acc.actividades[1], {estado: 'En proceso', avance: 10});
+  M.agregarNota(acc.actividades[2], {estado: 'En proceso', avance: 10});
+  assert.strictEqual(M.avanceAccion(acc), 40); // (100 + 10 + 10) / 3
+  acc.actividades[1].activa = false;
+  acc.actividades[2].activa = false;
+  assert.strictEqual(M.avanceAccion(acc), 100); // solo queda la actividad 1 completa
+  assert.strictEqual(M.estadoAccion(acc), 'Completado');
+});
+
 const RUTA_FCAV = 'D:/Datos_PC/Descargas/Seguimiento_FCAV_Semestre_I_2026_reconstruido_2026-10-06.json';
 test('plan real de FCAV: no se pierde información al migrar', { skip: !fs.existsSync(RUTA_FCAV) }, () => {
   const real = JSON.parse(fs.readFileSync(RUTA_FCAV, 'utf8'));

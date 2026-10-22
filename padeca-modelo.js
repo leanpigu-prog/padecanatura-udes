@@ -44,12 +44,20 @@
     return ((acc && acc.actividades) || []).filter(esActiva);
   }
 
+  // Avance (0-100) de una actividad: el de su última nota; si esa nota no trae porcentaje
+  // (notas anteriores al avance por actividad), se deduce del estado.
+  function avanceActividad(act){
+    const n = ultimaNota(act);
+    if(n && typeof n.avance === 'number') return Math.max(0, Math.min(100, n.avance));
+    return Math.round(100 * (PESO_ESTADO[estadoActividad(act)] || 0));
+  }
+
+  // Con actividades activas, el avance de la acción es el promedio de su avance.
   function avanceAccion(acc){
     const acts = actividadesActivas(acc);
     if(acts.length){
-      let suma = 0;
-      acts.forEach(a => { suma += PESO_ESTADO[estadoActividad(a)] || 0; });
-      return Math.round(100 * suma / acts.length);
+      const suma = acts.reduce((t, a) => t + avanceActividad(a), 0);
+      return Math.round(suma / acts.length);
     }
     const n = ultimaNota(acc);
     return (n && typeof n.avance === 'number') ? n.avance : 0;
@@ -210,7 +218,7 @@
   }
 
   const api = {
-    ESTADOS, PESO_ESTADO, VERSION_MODELO, nuevoId, esActiva, ultimaNota, estadoActividad, linkVigente,
+    ESTADOS, PESO_ESTADO, VERSION_MODELO, nuevoId, esActiva, ultimaNota, estadoActividad, avanceActividad, linkVigente,
     actividadesActivas, avanceAccion, estadoAccion, accionesActivas, avanceGlobal, totalesPlan,
     agregarNota, borrarNota, moverElemento, moverActividadPorUid, insertarActividadDebajo,
     semestreDeCorte, migrarPlan
