@@ -52,6 +52,15 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1a
 .act-link{font-size:10px;margin-bottom:6px}
 .act-link a{color:#185FA5}
 .nota-hist{font-size:10px;margin:4px 0 6px}.nota-hist summary{cursor:pointer;color:#185FA5;font-weight:700}.nh-item{background:#fff;border:1px solid #e2e9f2;border-radius:6px;padding:5px 8px;margin-top:4px;color:#444;line-height:1.5}
+.avisos{background:#FFF8E1;border:1px solid #f0d890;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px}
+.avisos.hay-error{background:#FDEEEE;border-color:#f0b4b4}
+.avisos summary{cursor:pointer;font-weight:700;color:#7a5a00}
+.avisos.hay-error summary{color:#922}
+.avisos ul{margin:8px 0 2px 16px;line-height:1.6}
+.avisos li.error::marker{color:#E24B4A}.avisos li.aviso::marker{color:#FFB800}.avisos li.info::marker{color:#9aa8b8}
+.avisos a{color:#185FA5;font-weight:700;text-decoration:none;cursor:pointer}
+.av-tag{font-size:10px;font-weight:700;border-radius:20px;padding:3px 9px;background:#FFF3CD;color:#856404;border:1px solid #FFD97D;white-space:nowrap}
+.av-tag.err{background:#FDE8E8;color:#922;border-color:#F5A6A6}
 .no-link{color:#e53e3e;font-style:italic}
 .vrow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
 .vbtn{border:none;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;opacity:.5;transition:.15s}
@@ -127,7 +136,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#1a
 <script src="udes-branding.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="padeca-config.js"></script>
-<script src="padeca-modelo.js?v=4"></script>
+<script src="padeca-modelo.js?v=5"></script>
 <script src="padeca-auth.js?v=4"></script>
 <script>
 UdesHeader.render('#udes-header-mount',{subtitulo:'Revisión y verificación de evidencias por el auditor institucional',badge:'Fase 3 · Auditoría'});
@@ -214,7 +223,22 @@ function setStatus(msg) {
   setTimeout(function(){ el.textContent=''; }, 3000);
 }
 
-function render() { renderGlobal(); renderDims(); }
+function renderAvisos() {
+  var host = document.getElementById('avisos-f3');
+  if (!host) {
+    var sg = document.getElementById('sem-global');
+    if (!sg) return;
+    sg.insertAdjacentHTML('afterend', '<div id="avisos-f3"></div>');
+    host = document.getElementById('avisos-f3');
+  }
+  var v = M.avisosCoherencia(planData).filter(function(x){ return x.nivel !== 'info'; });
+  if (!v.length) { host.innerHTML = ''; return; }
+  var errores = v.filter(function(x){ return x.nivel === 'error'; }).length;
+  host.innerHTML = '<details class="avisos'+(errores?' hay-error':'')+'"><summary>⚠ '+v.length+' aviso'+(v.length===1?'':'s')+' de coherencia en los datos del decano'+(errores?' ('+errores+' graves)':'')+'</summary><ul>'+
+    v.map(function(x){ return '<li class="'+x.nivel+'"><strong>'+fesc(x.accionId)+'</strong>: '+fesc(x.mensaje)+'</li>'; }).join('')+'</ul></details>';
+}
+
+function render() { renderGlobal(); renderAvisos(); renderDims(); }
 
 function renderGlobal() {
   var sem = calcSem(planData.acciones);

@@ -152,6 +152,15 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 .imp-tabla th,.imp-tabla td{border-bottom:1px solid #e2e9f2;padding:4px 6px;text-align:left}
 .imp-aviso{background:#FFF8E1;border:1px solid #f0d890;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:12px}
 .imp-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.avisos{background:#FFF8E1;border:1px solid #f0d890;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px}
+.avisos.hay-error{background:#FDEEEE;border-color:#f0b4b4}
+.avisos summary{cursor:pointer;font-weight:700;color:#7a5a00}
+.avisos.hay-error summary{color:#922}
+.avisos ul{margin:8px 0 2px 16px;line-height:1.6}
+.avisos li.error::marker{color:#E24B4A}.avisos li.aviso::marker{color:#FFB800}.avisos li.info::marker{color:#9aa8b8}
+.avisos a{color:#185FA5;font-weight:700;text-decoration:none;cursor:pointer}
+.av-tag{font-size:10px;font-weight:700;border-radius:20px;padding:3px 9px;background:#FFF3CD;color:#856404;border:1px solid #FFD97D;white-space:nowrap}
+.av-tag.err{background:#FDE8E8;color:#922;border-color:#F5A6A6}
 </style>
 </head>
 <body>
@@ -196,6 +205,7 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
     </div>
   </div>
   <div class="dash-grid" id="dashboard"></div>
+  <div id="avisos"></div>
   <div id="dims-container"></div>
   <div style="margin-top:16px;background:#E8F4FD;border:1px solid #90CAF9;border-radius:12px;padding:14px 18px;margin-bottom:4px">
     <div style="font-size:11px;font-weight:700;color:#185FA5;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Descargas del plan anual 2026</div>
@@ -213,7 +223,7 @@ input.error-field{border-color:#E24B4A !important;box-shadow:0 0 0 3px #fde8e8 !
 <script src="udes-branding.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="padeca-config.js"></script>
-<script src="padeca-modelo.js?v=4"></script>
+<script src="padeca-modelo.js?v=5"></script>
 <script src="padeca-auth.js?v=4"></script>
 <script>
 UdesHeader.render('#udes-header-mount',{subtitulo:'Formulario de Seguimiento - Plan de Trabajo de Decanatura 2026',badge:'Fase 2 · Seguimiento'});
@@ -283,7 +293,22 @@ function restaurarBorradores(raiz){
 }
 
 /* ---------- Dashboard y dimensiones ---------- */
+function esc2(s){return esc(s);}
+function renderAvisos(){
+  var cont=document.getElementById('avisos');if(!cont)return;
+  var v=M.avisosCoherencia(planData).filter(function(x){return x.nivel!=='info';});
+  if(!v.length){cont.innerHTML='';return;}
+  var errores=v.filter(function(x){return x.nivel==='error';}).length;
+  cont.innerHTML='<details class="avisos'+(errores?' hay-error':'')+'"><summary>⚠ '+v.length+' aviso'+(v.length===1?'':'s')+' de coherencia'+(errores?' ('+errores+' por corregir)':'')+' — haga clic para ver</summary><ul>'+
+    v.map(function(x){return '<li class="'+x.nivel+'"><a onclick="irAAccion(\''+x.accionUid+'\')">'+esc(x.accionId)+'</a>: '+esc(x.mensaje)+'</li>';}).join('')+'</ul></details>';
+}
+function irAAccion(uid){
+  var c=document.getElementById('card-'+uid);if(!c)return;
+  var b=c.closest('.dim-body');if(b&&!b.classList.contains('open')){b.classList.add('open');abiertas[b.id.replace('db-','')]=true;var ar=document.getElementById('ar-'+b.id.replace('db-',''));if(ar)ar.textContent='▲';}
+  c.scrollIntoView({behavior:'smooth',block:'start'});
+}
 function renderDashboard(){
+  renderAvisos();
   var t=M.totalesPlan(planData);
   var acc=M.accionesActivas(planData);
   var total=t.acciones;
@@ -397,6 +422,13 @@ function renderActividad(a,act,i){
     cuerpo+'</div>';
 }
 
+function tagAvisos(a){
+  var v=M.avisosAccion(a).filter(function(x){return x.nivel!=='info';});
+  if(!v.length)return '';
+  var err=v.some(function(x){return x.nivel==='error';});
+  return '<span class="av-tag'+(err?' err':'')+'" title="'+esc(v.map(function(x){return x.mensaje;}).join(' | '))+'">⚠ '+v.length+'</span>';
+}
+
 function renderAcCard(a){
   var aid=a.uid;
   var ps=pilarStyle[a.pilar];
@@ -424,7 +456,7 @@ function renderAcCard(a){
       actsHtml+'</div>';
   }
   return '<div class="ac-card'+(activa?'':' inactiva')+'" id="card-'+aid+'">'+
-    '<div class="ac-hdr"><div class="ac-title">'+esc(a.accion)+'</div><div class="ac-hdr-r">'+badgeEstado(activa?estadoAcc:'No aplica')+
+    '<div class="ac-hdr"><div class="ac-title">'+esc(a.accion)+'</div><div class="ac-hdr-r">'+tagAvisos(a)+badgeEstado(activa?estadoAcc:'No aplica')+
     toggleHtml('apa-'+aid,activa,'toggleActivaAcc(\''+aid+'\',this.checked)','Aplica 2026')+'</div></div>'+
     (a.meta&&a.meta!=='Por definir'?'<div class="ac-meta">Meta: <strong>'+esc(a.meta)+'</strong></div>':'')+
     '<div class="ac-tags">'+badge+'<span class="ac-tag" style="background:#f4f7fb;color:#555">'+esc(a.responsable)+'</span><span class="ac-tag" style="background:#f4f7fb;color:#555">'+esc(a.fechaLimite)+'</span></div>'+

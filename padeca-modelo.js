@@ -217,6 +217,41 @@
     return plan;
   }
 
+  /* ---------- Avisos de coherencia ---------- */
+
+  // Avisos de una acción activa. nivel: 'error' (falta evidencia o se declara completo lo que no lo está),
+  // 'aviso' (estado y avance no coinciden) o 'info'. No bloquean nada: solo se muestran.
+  function avisosAccion(a){
+    const out = [];
+    if(!esActiva(a)) return out;
+    const add = (nivel, codigo, mensaje, actUid) => out.push({nivel, codigo, accionId: a.id, accionUid: a.uid, actividadUid: actUid || null, mensaje});
+    const acts = actividadesActivas(a);
+    acts.forEach((x, i) => {
+      const est = estadoActividad(x), av = avanceActividad(x), etq = 'Actividad ' + ((a.actividades || []).indexOf(x) + 1);
+      if(est === 'Completado' && !linkVigente(x)) add('error', 'act_completa_sin_evidencia', etq + ' está Completada pero no tiene enlace de evidencia.', x.uid);
+      else if(est === 'Completado' && av < 100) add('aviso', 'act_completa_avance', etq + ' está Completada pero su avance es ' + av + ' %.', x.uid);
+      else if(est !== 'Completado' && av >= 100) add('aviso', 'act_100_no_completa', etq + ' tiene avance 100 % pero su estado es ' + est + '.', x.uid);
+      else if(est === 'Pendiente' && av > 0) add('aviso', 'act_pendiente_con_avance', etq + ' figura Pendiente pero tiene avance ' + av + ' %.', x.uid);
+    });
+    if(acts.length){
+      const u = ultimaNota(a), av = avanceAccion(a);
+      if(u && (u.estado === 'Completado' || u.avance === 100) && av < 100){
+        add('error', 'accion_completa_con_pendientes', 'La última nota de la acción dice ' + (u.avance === 100 ? '100 %' : 'Completado') + ', pero sus actividades activas están al ' + av + ' %.');
+      }
+    }else{
+      const est = estadoAccion(a), av = avanceAccion(a);
+      if((est === 'Completado' || av >= 100) && !linkVigente(a)) add('error', 'accion_completa_sin_evidencia', 'La acción figura ' + (est === 'Completado' ? 'Completada' : 'al 100 %') + ' pero no tiene enlace de evidencia.');
+      else if(est === 'Completado' && av < 100) add('aviso', 'accion_estado_avance', 'La acción está Completada pero su avance es ' + av + ' %.');
+      else if(av >= 100 && est !== 'Completado') add('aviso', 'accion_estado_avance', 'La acción tiene avance 100 % pero su estado es ' + est + '.');
+      if((a.actividades || []).length) add('info', 'sin_actividades_activas', 'Todas las actividades están desactivadas: el avance se registra directamente en la acción.');
+    }
+    return out;
+  }
+
+  function avisosCoherencia(plan){
+    return accionesActivas(plan).reduce((t, a) => t.concat(avisosAccion(a)), []);
+  }
+
   /* ---------- Importar un respaldo JSON (fusión sin borrar nada) ---------- */
 
   const _firma = n => [n.fecha || '', n.estado || '', typeof n.avance === 'number' ? n.avance : '', (n.texto || '').trim(), (n.link || '').trim(), n.semestre || ''].join('|');
@@ -276,7 +311,7 @@
     ESTADOS, PESO_ESTADO, VERSION_MODELO, nuevoId, esActiva, ultimaNota, estadoActividad, avanceActividad, linkVigente,
     actividadesActivas, avanceAccion, estadoAccion, accionesActivas, avanceGlobal, totalesPlan,
     agregarNota, borrarNota, moverElemento, moverActividadPorUid, insertarActividadDebajo,
-    semestreDeCorte, migrarPlan, fusionarPlan
+    semestreDeCorte, migrarPlan, fusionarPlan, avisosAccion, avisosCoherencia
   };
   if(typeof module !== 'undefined' && module.exports) module.exports = api;
   root.PadecaModelo = api;

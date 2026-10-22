@@ -210,6 +210,34 @@ test('importar respaldo: rechaza otra facultad, no crea acciones nuevas ni toca 
   assert.strictEqual(r.plan.acciones[0].actividades[1].activa, false);
 });
 
+test('avisos de coherencia: detecta evidencia faltante y estados contradictorios', () => {
+  const plan = {facultad: {codigo: 'FCX'}, acciones: [
+    {id: 'a1', uid: 'a1', activa: true, estadoInicial: 'Pendiente', actividades: [
+      {id: 'a1_act_1', uid: 'a1_act_1', activa: true, notas: [{id: 'n1', fecha: '2026-06-01', estado: 'Completado', avance: 100, texto: '', link: ''}]},
+      {id: 'a1_act_2', uid: 'a1_act_2', activa: true, notas: [{id: 'n2', fecha: '2026-06-01', estado: 'En proceso', avance: 100, texto: '', link: 'http://e'}]},
+      {id: 'a1_act_3', uid: 'a1_act_3', activa: true, notas: [{id: 'n3', fecha: '2026-06-01', estado: 'Pendiente', avance: 20, texto: '', link: ''}]}],
+     notas: [{id: 'n4', fecha: '2026-06-02', estado: 'En proceso', avance: 100, texto: '', link: ''}]},
+    {id: 'a2', uid: 'a2', activa: true, estadoInicial: 'Pendiente', actividades: [], notas: [{id: 'n5', fecha: '2026-06-01', estado: 'Completado', avance: 100, texto: '', link: ''}]},
+    {id: 'a3', uid: 'a3', activa: false, actividades: [], notas: [{id: 'n6', fecha: '2026-06-01', estado: 'Completado', avance: 100, texto: '', link: ''}]},
+    {id: 'a4', uid: 'a4', activa: true, estadoInicial: 'Pendiente', actividades: [{id: 'a4_act_1', uid: 'a4_act_1', activa: true, notas: [{id: 'n7', fecha: '2026-06-01', estado: 'Completado', avance: 100, texto: '', link: 'http://ok'}]}], notas: []}
+  ]};
+  const v = M.avisosCoherencia(plan);
+  const codigos = v.map(x => x.accionId + ':' + x.codigo).sort();
+  assert.deepStrictEqual(codigos, [
+    'a1:accion_completa_con_pendientes', 'a1:act_100_no_completa', 'a1:act_completa_sin_evidencia', 'a1:act_pendiente_con_avance',
+    'a2:accion_completa_sin_evidencia'].sort());
+  assert.ok(v.filter(x => x.nivel === 'error').length === 3);
+  assert.deepStrictEqual(M.avisosAccion(plan.acciones[3]), []);   // coherente: sin avisos
+  assert.deepStrictEqual(M.avisosAccion(plan.acciones[2]), []);   // desactivada: no se evalúa
+});
+
+test('avisos de coherencia: una acción con todas las actividades desactivadas lo informa', () => {
+  const p = M.migrarPlan(planBase());
+  p.acciones[0].actividades.forEach(x => { x.activa = false; });
+  const v = M.avisosAccion(p.acciones[0]);
+  assert.ok(v.some(x => x.codigo === 'sin_actividades_activas' && x.nivel === 'info'));
+});
+
 const RUTA_FCAV = 'D:/Datos_PC/Descargas/Seguimiento_FCAV_Semestre_I_2026_reconstruido_2026-10-06.json';
 test('plan real de FCAV: no se pierde información al migrar', { skip: !fs.existsSync(RUTA_FCAV) }, () => {
   const real = JSON.parse(fs.readFileSync(RUTA_FCAV, 'utf8'));
